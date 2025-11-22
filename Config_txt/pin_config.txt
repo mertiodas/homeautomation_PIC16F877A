@@ -11,13 +11,13 @@ Goal: Temperature Control and User Input (Keypad)
 | Peripheral Module | Component Pin | I/O Type | PIC Pin | Pin Function / Constraint |
 |-------------------|---------------|----------|---------|---------------------------|
 | Temperature System| Temp (LM35)   | Analog In| RA0     | AN0 (Ambient Temp Read) |
-|                   | Heater        | Digital Out| RD0   | Controls Heater |
-|                   | Cooler        | Digital Out| RD1   | Controls Fan/Cooler |
+|                   | Heater        | Digital Out| RE0   | Controls Heater |
+|                   | Cooler        | Digital Out| RE1   | Controls Fan/Cooler |
 |                   | Tach (Fan Spd)| Timer In | RC0     | T1CKI (Fan Speed Count) |
 | Keypad            | Rows (L1-L4)  | Digital In| RB0-RB3| Keypad Rows |
 |                   | Columns (C1-C4)| Digital Out| RB4-RB7| Keypad Columns |
-| 7-Segment Display | Segments (a-g, dp)| Digital Out| RC1-RC5, RD2-RD4| 8 Segments (DP is RD4) |
-|                   | Select (D1-D4)| Digital Out| RE0, RE1, RE2, RD5| 4 Digit Selectors |
+| 7-Segment Display | Segments (a-g, dp)| Digital Out| RD0-RD7| 8 Segments (DP is RD4) |
+|                   | Select (D1-D4)| Digital Out| RE2, RA3, RA4, RA5 | 4 Digit Selectors |
 | UART IO Module    | P2-RX (Receive)| Serial In| RC7     | PIC Hardware RX Pin |
 |                   | P3-TX (Transmit)| Serial Out| RC6   | PIC Hardware TX Pin |
 | UART Config       | Port          | N/A      | COM5    | Serial Connection to PC |
