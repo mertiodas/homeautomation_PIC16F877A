@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1091</width>
+    <height>651</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Home Automation System</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">/* =========================================
+   VERIFIED FRUTIGER AERO STYLESHEET (CLEAN)
+   ========================================= */
+
+QMainWindow {
+    background-color: #E6F3F7; 
+}
+
+QGroupBox {
+    background-color: rgba(255, 255, 255, 0.7); 
+    border: 1px solid #99CCFF;
+    border-radius: 12px;
+    margin-top: 10px;
+    font: 12pt &quot;Segoe UI&quot;;
+    color: #004D66; 
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 10px;
+    background-color: #99CCFF; 
+    color: #FFFFFF; 
+    border-radius: 4px;
+}
+
+QPushButton {
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                     stop: 0 #77DD77, 
+                                     stop: 1 #4CAF50); 
+    color: white;
+    font: 10pt &quot;Segoe UI Semibold&quot;;
+    border: 1px solid #388E3C;
+    border-radius: 8px;
+    padding: 8px 15px;
+}
+
+QPushButton:hover {
+    background-color: #82E0AA;
+}
+
+QPushButton:pressed {
+    background-color: #388E3C;
+}
+
+QLineEdit {
+    background-color: white;
+    border: 1px solid #0099CC; 
+    border-radius: 5px;
+    padding: 4px;
+    font: 11pt &quot;Segoe UI&quot;;
+}
+QLabel {
+    font-family: &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;
+    color: #004D66; 
+    padding: 3px; 
+    background-color: transparent;
+}
+/* Style for key values like 29.5 °C */
+QLabel[class=&quot;ValueLabel&quot;] {
+    /* Highly legible, bold digital font style */
+    font-family: &quot;Segoe UI Black&quot;, &quot;Segoe UI Semibold&quot;, Arial, sans-serif;
+    font-weight: 800; /* Extra bold */
+    
+    /* Aquatic blue/cyan color */
+    color: #0088CC; 
+    
+    /* Text shadow creates the signature soft glow and depth */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3), 
+                 0 0 10px rgba(0, 150, 200, 0.7); 
+    
+    /* You will manually set font-size: 24pt (or similar) on this element */
+    padding: 5px;
+}
+</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout_2">
+    <item row="0" column="0">
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="1">
+       <widget class="QGroupBox" name="groupBox_2">
+        <property name="maximumSize">
+         <size>
+          <width>319</width>
+          <height>281</height>
+         </size>
+        </property>
+        <property name="title">
+         <string/>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_8">
+         <item row="2" column="0">
+          <widget class="QLineEdit" name="curtainInput"/>
+         </item>
+         <item row="3" column="0">
+          <widget class="QPushButton" name="pushButton">
+           <property name="text">
+            <string>APPLY</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_6">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>16</pointsize>
+             <italic>false</italic>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">/* --- AGGRESSIVE FEATURE FONT OVERRIDE --- */
+QLabel[class=&quot;ValueLabel&quot;] {
+    font: 24pt &quot;Segoe UI Black&quot;; /* Increased size and highly visible font */
+    font-weight: 900; /* Ensures the text is rendered extremely bold */
+    color: #0088CC; /* Bright Aquatic Blue */
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4), 
+                 0 0 15px rgba(0, 150, 200, 0.9); /* Stronger glow/shadow */
+    min-height: 40px; /* Ensures vertical space for the large font */
+    padding: 5px;
+}</string>
+           </property>
+           <property name="text">
+            <string>Curtain Control</string>
+           </property>
+           <property name="textFormat">
+            <enum>Qt::TextFormat::PlainText</enum>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Enter Desired Curtain Status (0.0% to 100.0%)</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QGroupBox" name="groupBox_4">
+        <property name="maximumSize">
+         <size>
+          <width>319</width>
+          <height>268</height>
+         </size>
+        </property>
+        <property name="title">
+         <string/>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_7">
+         <item row="1" column="0">
+          <widget class="QPushButton" name="outside">
+           <property name="text">
+            <string>I Want To See The Outside World</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="movie">
+           <property name="text">
+            <string>I Am Watching A Movie</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QPushButton" name="curtainUpdate">
+           <property name="text">
+            <string>UPDATE</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QGroupBox" name="groupBox_3">
+        <property name="maximumSize">
+         <size>
+          <width>319</width>
+          <height>268</height>
+         </size>
+        </property>
+        <property name="title">
+         <string/>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="2" column="0">
+          <widget class="QPushButton" name="guests">
+           <property name="text">
+            <string>I Have Guests Over</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="sweat">
+           <property name="text">
+            <string>I Am Sweating</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="cold">
+           <property name="text">
+            <string>I Am Cold</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QPushButton" name="acUpdate">
+           <property name="text">
+            <string>UPDATE</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QGroupBox" name="groupBox">
+        <property name="maximumSize">
+         <size>
+          <width>319</width>
+          <height>281</height>
+         </size>
+        </property>
+        <property name="title">
+         <string/>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="0" column="0">
+          <layout class="QGridLayout" name="gridLayout_4">
+           <item row="0" column="0">
+            <widget class="QLabel" name="acLabel">
+             <property name="font">
+              <font>
+               <family>Segoe UI</family>
+               <pointsize>16</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>Air Conditioner</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Enter Desired Temperature (Range 10.0-50.0)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLineEdit" name="acInput"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QPushButton" name="pushButton_2">
+             <property name="text">
+              <string>APPLY</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="0" column="2" rowspan="2">
+       <widget class="QGroupBox" name="groupBox_5">
+        <property name="maximumSize">
+         <size>
+          <width>397</width>
+          <height>561</height>
+         </size>
+        </property>
+        <property name="title">
+         <string/>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_6">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_10">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Home Ambient Temperature</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="ambientTemp">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_8">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Home Desired Temperature</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="desiredTemp">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Fan Speed</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLabel" name="fanSpeed">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Outdoor Temperature</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLabel" name="outdoorTemp">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_11">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Curtain Status</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QLabel" name="curtainStatus">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_9">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Light Intensity</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QLabel" name="lightIntensity">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="label_5">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Connection Status</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QLabel" name="connectionStatus">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1091</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuAir_Conditioner">
+    <property name="title">
+     <string>Air Conditioner</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuCurtain_Control">
+    <property name="title">
+     <string>Curtain Control</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>About</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuExit">
+    <property name="title">
+     <string>Exit</string>
+    </property>
+   </widget>
+   <addaction name="menuAir_Conditioner"/>
+   <addaction name="menuCurtain_Control"/>
+   <addaction name="menuAbout"/>
+   <addaction name="menuExit"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
