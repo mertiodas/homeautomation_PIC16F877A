@@ -1,0 +1,48 @@
+======================================================
+FINAL TEAM TASK ASSIGNMENTS: HOME AUTOMATION PROJECT
+======================================================
+Fair ownership of all development tasks.
+------------------------------------------------------
+1.MERT
+------------------------------------------------------
+- **Python (All PC Code)**: All files in PC_High_Level/API/ and PC_High_Level/Application/
+    - Task: Implement the entire Python layer (Base Connection, AC API, Curtain API, and the Main Menu Application).
+- **Assembly (Board #1)**: Board_1/uart_board1.inc
+    - Task: Implement UART RX/TX handlers for Board #1 (RC6/RC7) to parse PC commands.
+- **Assembly (Board #2)**: Board_2/uart_board2.inc
+    - Task: Implement UART RX/TX handlers for Board #2 (RC6/RC7) to parse PC commands.
+
+------------------------------------------------------
+2.SAFIULLAH
+------------------------------------------------------
+- **Assembly (Board #1)**: Board_1/main_board1.asm
+    - Task: Write the Board #1 main program structure (ISR, config, main loop).
+- **Assembly (Board #1)**: Board_1/temp_adc.inc
+    - Task: Implement ADC routine for Ambient Temp (RA0) and Timer logic for Fan Speed (RC0).
+- **Assembly (Board #1)**: Board_1/display.inc
+    - Task: Implement 7-Segment Display multiplexing and 2-second interval logic.
+
+------------------------------------------------------
+3.EMIRHAN
+------------------------------------------------------
+- **Assembly (Board #2)**: Board_2/main_board2.asm
+    - Task: Write the Board #2 main program structure (ISR, config, main loop).
+- **Assembly (Board #2)**: Board_2/bmp180_i2c.inc
+    - Task: Implement I²C protocol for reading Temp/Pressure from BMP180 (RC3/RC4).
+- **Assembly (Board #2)**: Board_2/lcd_control.inc
+    - Task: Implement LCD display routines (initialization, write data/command, and screen formatting).
+
+------------------------------------------------------
+4.ÖZLEM
+------------------------------------------------------
+- **Assembly (Board #2)**: Board_2/analog_sensors.inc
+    - Task: Implement ADC routine for Potentiometer (RA2) to map voltage to 0-100% status.
+    - Task: Implement LDR ADC routine (RA1) and auto-close threshold logic.
+- **Assembly (Board #2)**: Board_2/motor_control.inc
+    - Task: Implement Step Motor sequence and calculation.
+------------------------------------------------------
+5.HILAL
+------------------------------------------------------
+- **Assembly (Board #1)**: Board_1/keypad.inc
+    - Task: Implement Keypad scanning, 'A' interrupt, input parsing, and validation (10.0 to 50.0).
+======================================================
