@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1091</width>
+    <width>1006</width>
     <height>651</height>
    </rect>
   </property>
@@ -449,6 +449,111 @@ QLabel[class=&quot;ValueLabel&quot;] {
            </property>
           </widget>
          </item>
+         <item row="7" column="0">
+          <widget class="QLabel" name="label_3">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Outdoor Pressure</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="1">
+          <widget class="QLabel" name="outdoorPressure">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="0">
+          <widget class="QLabel" name="label_12">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>AC Connection Port</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="1">
+          <widget class="QLabel" name="acPort">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="9" column="0">
+          <widget class="QLabel" name="label_13">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>AC Connection Baudrate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="10" column="0">
+          <widget class="QLabel" name="label_14">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Curtain Connection Port</string>
+           </property>
+          </widget>
+         </item>
+         <item row="10" column="1">
+          <widget class="QLabel" name="curtainPort">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="11" column="0">
+          <widget class="QLabel" name="label_15">
+           <property name="font">
+            <font>
+             <family>Segoe UI</family>
+             <pointsize>12</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Curtain Connection Baudrate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="11" column="1">
+          <widget class="QLabel" name="curtainBaudrate">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="9" column="1">
+          <widget class="QLabel" name="acBaudrate">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
@@ -456,12 +561,13 @@ QLabel[class=&quot;ValueLabel&quot;] {
     </item>
    </layout>
   </widget>
+  <widget class="QStatusBar" name="statusbar"/>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1091</width>
+     <width>1006</width>
      <height>22</height>
     </rect>
    </property>
@@ -469,31 +575,48 @@ QLabel[class=&quot;ValueLabel&quot;] {
     <property name="title">
      <string>Air Conditioner</string>
     </property>
+    <addaction name="menuTemp"/>
    </widget>
-   <widget class="QMenu" name="menuCurtain_Control">
+   <widget class="QMenu" name="menuCurtain">
     <property name="title">
      <string>Curtain Control</string>
     </property>
+    <addaction name="menuControl"/>
    </widget>
-   <widget class="QMenu" name="menuAbout">
-    <property name="title">
-     <string>About</string>
-    </property>
-   </widget>
-   <widget class="QMenu" name="menuExit">
+   <widget class="QMenu" name="exit">
     <property name="title">
      <string>Exit</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuSave">
+    <property name="title">
+     <string>Save </string>
+    </property>
+    <addaction name="save"/>
+   </widget>
    <addaction name="menuAir_Conditioner"/>
-   <addaction name="menuCurtain_Control"/>
-   <addaction name="menuAbout"/>
-   <addaction name="menuExit"/>
+   <addaction name="menuCurtain"/>
+   <addaction name="menuSave"/>
+   <addaction name="exit"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="menuTemp">
+   <property name="text">
+    <string>Set Temperature</string>
+   </property>
+  </action>
+  <action name="menuControl">
+   <property name="text">
+    <string>Control</string>
+   </property>
+  </action>
+  <action name="save">
+   <property name="text">
+    <string>Save Data</string>
    </property>
   </action>
  </widget>
