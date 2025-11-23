@@ -10,11 +10,14 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1006, 651)
+        self.setWindowIcon(QIcon("auto.jpg"))
         MainWindow.setStyleSheet("/* =========================================\n"
 "   VERIFIED FRUTIGER AERO STYLESHEET (CLEAN)\n"
 "   ========================================= */\n"
