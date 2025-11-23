@@ -1,5 +1,3 @@
-# FILE: PC_High_Level/API/curtain_ctrl_api.py
-
 from .main import HomeAutomationSystemConnection
 
 class CurtainControlSystemConnection(HomeAutomationSystemConnection):

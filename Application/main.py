@@ -4,15 +4,11 @@ class HomeAutomationSystemConnection:
         self._baudRate = baud_rate  #9600
     def open(self) -> bool:
         pass
-
     def close(self) -> bool:
         pass
-
     def update(self):
         pass
-
     def setComPort(self, port: int):
         pass
-
     def setBaudRate(self, rate: int):
         pass

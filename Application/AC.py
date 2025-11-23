@@ -1,7 +1,4 @@
-# FILE: PC_High_Level/API/air_cond_api.py
-
 from .main import HomeAutomationSystemConnection
-
 
 class AirConditionerSystemConnection(HomeAutomationSystemConnection):
     def __init__(self, port: int = 5):
