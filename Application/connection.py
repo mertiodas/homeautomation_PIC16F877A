@@ -1,5 +1,3 @@
-import serial
-
 class HomeAutomationSystemConnection:
     def __init__(self, port: int, baud_rate: int = 9600):
         self._comPort = port  # COM5 and COM6
