@@ -1,4 +1,4 @@
-from .main import HomeAutomationSystemConnection
+from .connection import HomeAutomationSystemConnection
 
 class AirConditionerSystemConnection(HomeAutomationSystemConnection):
     def __init__(self, port: int = 5):

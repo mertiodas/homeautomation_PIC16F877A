@@ -1,4 +1,4 @@
-from .main import HomeAutomationSystemConnection
+from .connection import HomeAutomationSystemConnection
 
 class CurtainControlSystemConnection(HomeAutomationSystemConnection):
     def __init__(self, port: int = 6):
