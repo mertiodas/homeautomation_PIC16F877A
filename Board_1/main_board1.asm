@@ -1,5 +1,6 @@
 ; ======================================================
 ; FILE: main_board1.asm
+; AUTHOR: SAFIULLAH SEDIQI 152120211031
 ; CLEAN + BANK-ISOLATED (RE0=HEATER, RE1=COOLER)
 ; ======================================================
 

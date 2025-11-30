@@ -1,5 +1,6 @@
 ; ======================================================
 ; MODULE: temp_adc.asm  (BANK1 udata)
+; AUTHOR: SAFIULLAH SEDIQI
 ; LM35 + 10-bit ADC, RE portuna DOKUNMAZ
 ; ======================================================
 
