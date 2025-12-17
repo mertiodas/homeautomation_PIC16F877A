@@ -16,7 +16,6 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
         self.api_curtain = CurtainControlSystemConnection(port=6)
     def update_all_systems(self):
         pass
-
     def refresh_gui_labels(self):
         pass
 
