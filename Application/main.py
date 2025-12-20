@@ -8,6 +8,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
+
 class MainWindowLogic(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
