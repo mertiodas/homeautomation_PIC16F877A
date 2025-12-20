@@ -1,13 +1,16 @@
 ;=============================================================================
-; FILE: keypad_final_WORKING_v2.asm
-; AUTHOR: Hilal Ongör (Final Düzeltilmi? Versiyon)
+; FILE: Board_1/keypad.inc
+; AUTHOR: Hilal Ongör
+; BOARD: Board #1
+; TASK: Implement Keypad scanning, 'A' interrupt, input parsing, 
+;       and validation (10.0 to 50.0).
 ;
-; KURAL SET?:
-; 10 <= Say? <= 50 -> P (Pass)
-; Di?erleri -> r (Reject)
+; VALIDATION RULES:
+; 10 <= Number <= 50 -> P (Pass)
+; Others -> r (Reject)
 ;
-; ÖZEL DURUMLAR:
-; 50 (#) -> P (Pass) - (KES?N ÇÖZÜM EKLEND?)
+; SPECIAL CASES:
+; 50 (#) -> P (Pass)
 ; 51 (#) -> r (Reject)
 ; 09 (#) -> r (Reject)
 ; 5.0 (#) -> P (Pass)
@@ -143,7 +146,7 @@ TASK_RESET:
     GOTO    WAIT_RELEASE
 
 TASK_SAVE_D1:
-    ; ?lk rakam? kaydet
+    ; Save first digit
     CALL    GET_NUMBER
     MOVWF   TEMP_CALC
     XORLW   0xFF
@@ -158,24 +161,24 @@ TASK_SAVE_D1:
     GOTO    WAIT_RELEASE
 
 TASK_SAVE_D2:
-    ; Enter kontrolü - Tek basamak durumu
+    ; Enter check - Single digit case
     BANKSEL LAST_KEY
     MOVF    LAST_KEY, W
     SUBLW   0x71            ; '#' (Enter)
     BTFSC   STATUS, 2
     GOTO    HANDLE_SINGLE_DIGIT
 
-    ; Rakam m??
+    ; Is it a digit?
     CALL    GET_NUMBER
     MOVWF   TEMP_CALC
     
-    ; 0xFF m? kontrol et (rakam de?il)
+    ; Check if 0xFF (not a digit)
     MOVF    TEMP_CALC, W
     XORLW   0xFF
     BTFSC   STATUS, 2
-    GOTO    WAIT_RELEASE    ; Rakam de?il -> bekle
+    GOTO    WAIT_RELEASE    ; Not a digit -> wait
 
-    ; Rakam? kaydet (0-9 aras?)
+    ; Save digit (0-9 range)
     MOVF    TEMP_CALC, W
     BANKSEL DIGIT2
     MOVWF   DIGIT2
@@ -184,37 +187,37 @@ TASK_SAVE_D2:
     GOTO    WAIT_RELEASE
 
 HANDLE_SINGLE_DIGIT:
-    ; Kullan?c? tek rakam girdi (örn: 4 -> #)
-    ; 0-4 -> r, 5-9 -> onu iki basamak yap (05-09)
+    ; User entered single digit (e.g: 4 -> #)
+    ; 0-4 -> r, 5-9 -> make it two digits (05-09)
     BANKSEL DIGIT1
     MOVF    DIGIT1, W
     
-    ; 4'ten küçük veya e?it mi?
+    ; Is it less than or equal to 4?
     SUBLW   4
-    BTFSC   STATUS, 0       ; Carry=1 ise DIGIT1 <= 4
+    BTFSC   STATUS, 0       ; Carry=1 if DIGIT1 <= 4
     GOTO    SHOW_FAIL
     
-    ; 5-9 aras?, onu 05-09 yap
+    ; Between 5-9, make it 05-09
     MOVF    DIGIT1, W
     MOVWF   DIGIT2
     CLRF    DIGIT1
     GOTO    VALIDATION_LOGIC
 
 TASK_CHECK_DOT_OR_ENTER:
-    ; '#' kontrolü - Enter
+    ; '#' check - Enter
     BANKSEL LAST_KEY
     MOVF    LAST_KEY, W
     SUBLW   0x71            ; '#' (Enter)
     BTFSC   STATUS, 2
     GOTO    VALIDATION_LOGIC
     
-    ; '.' kontrolü
+    ; '.' check
     MOVF    LAST_KEY, W
     SUBLW   0x80            ; '.' 
     BTFSS   STATUS, 2
     GOTO    WAIT_RELEASE
     
-    ; Nokta bas?ld?
+    ; Dot pressed
     BANKSEL HAS_DOT
     MOVLW   1
     MOVWF   HAS_DOT
@@ -225,21 +228,21 @@ TASK_CHECK_DOT_OR_ENTER:
     GOTO    WAIT_RELEASE
 
 TASK_SAVE_FRAC:
-    ; Enter kontrolü - Nokta sonras? direkt Enter
+    ; Enter check - Direct Enter after dot
     BANKSEL LAST_KEY
     MOVF    LAST_KEY, W
     SUBLW   0x71            ; '#' (Enter)
     BTFSC   STATUS, 2
-    GOTO    VALIDATION_LOGIC ; Enter -> Validation'a git
+    GOTO    VALIDATION_LOGIC ; Enter -> Go to Validation
     
-    ; Rakam m? kontrol et
+    ; Check if digit
     CALL    GET_NUMBER
     MOVWF   TEMP_CALC
     XORLW   0xFF
     BTFSC   STATUS, 2
-    GOTO    WAIT_RELEASE    ; Rakam de?il -> bekle
+    GOTO    WAIT_RELEASE    ; Not a digit -> wait
 
-    ; Rakamsa kaydet
+    ; If digit, save it
     MOVF    TEMP_CALC, W
     BANKSEL DIGIT_FRAC
     MOVWF   DIGIT_FRAC
@@ -257,31 +260,18 @@ TASK_WAIT_ENTER:
     GOTO    VALIDATION_LOGIC
 
 ; ============================================================================
-; VALIDATION LOGIC (DUZELTILMIS KISIM)
+; VALIDATION LOGIC (CORRECTED SECTION)
 ; ============================================================================
 VALIDATION_LOGIC:
-    ; 1. Ondal?k kontrol - Nokta varsa DIGIT_FRAC 0 olmal?
-    BANKSEL HAS_DOT
-    MOVF    HAS_DOT, W
-    BTFSC   STATUS, 2
-    GOTO    SKIP_FRAC_CHECK
-    
-    ; Nokta var, frac kontrol et
-    BANKSEL DIGIT_FRAC
-    MOVF    DIGIT_FRAC, W
-    BTFSS   STATUS, 2        ; Z=1 ise (FRAC=0) atla
-    GOTO    SHOW_FAIL        ; FRAC != 0 -> HATA (12.5 gibi)
-
-SKIP_FRAC_CHECK:
-    ; 2. DIGIT1 bazl? kontrol
+    ; 2. DIGIT1 based check
     BANKSEL DIGIT1
     MOVF    DIGIT1, W
     
-    ; DIGIT1 = 0? -> HATA (00-09)
+    ; DIGIT1 = 0? -> ERROR (00-09)
     BTFSC   STATUS, 2
     GOTO    SHOW_FAIL
     
-    ; DIGIT1 = 6,7,8,9 -> HATA
+    ; DIGIT1 = 6,7,8,9 -> ERROR
     XORLW   6
     BTFSC   STATUS, 2
     GOTO    SHOW_FAIL
@@ -301,7 +291,7 @@ SKIP_FRAC_CHECK:
     BTFSC   STATUS, 2
     GOTO    SHOW_FAIL
     
-    ; DIGIT1 = 5? -> DIGIT2 kontrol et
+    ; DIGIT1 = 5? -> Check DIGIT2
     MOVF    DIGIT1, W
     XORLW   5
     BTFSC   STATUS, 2
@@ -311,15 +301,15 @@ SKIP_FRAC_CHECK:
     GOTO    SHOW_PASS
 
 CHECK_IF_50:
-    ; DIGIT1 5 ise buraya gelir.
-    ; E?er DIGIT2 0 ise (50) -> PASS
-    ; E?er DIGIT2 != 0 ise (51, 52...) -> FAIL
+    ; If DIGIT1 is 5, comes here.
+    ; If DIGIT2 is 0 (50) -> PASS
+    ; If DIGIT2 != 0 (51, 52...) -> FAIL
     
     BANKSEL DIGIT2
     MOVF    DIGIT2, W
-    XORLW   0               ; W register 0 m?? (Yani DIGIT2 0 m??)
-    BTFSS   STATUS, 2       ; Z=1 (E?it) ise PASS'a atla
-    GOTO    SHOW_FAIL       ; Z=0 (E?it De?il) ise FAIL (51, 52...)
+    XORLW   0               ; Is W register 0? (Is DIGIT2 0?)
+    BTFSS   STATUS, 2       ; Z=1 (Equal) skip to PASS
+    GOTO    SHOW_FAIL       ; Z=0 (Not Equal) FAIL (51, 52...)
     
     GOTO    SHOW_PASS       ; 50 -> PASS
 
@@ -368,67 +358,67 @@ GET_NUMBER:
     MOVF    LAST_KEY, W
     MOVWF   TEMP_CALC
     
-    ; 0 kontrolü
+    ; Check for 0
     MOVF    TEMP_CALC, W
     XORLW   0x3F            ; 0x3F = '0'
     BTFSC   STATUS, 2
     RETLW   0
     
-    ; 1 kontrolü
+    ; Check for 1
     MOVF    TEMP_CALC, W
     XORLW   0x06            ; 0x06 = '1'
     BTFSC   STATUS, 2
     RETLW   1
     
-    ; 2 kontrolü
+    ; Check for 2
     MOVF    TEMP_CALC, W
     XORLW   0x5B            ; 0x5B = '2'
     BTFSC   STATUS, 2
     RETLW   2
     
-    ; 3 kontrolü
+    ; Check for 3
     MOVF    TEMP_CALC, W
     XORLW   0x4F            ; 0x4F = '3'
     BTFSC   STATUS, 2
     RETLW   3
     
-    ; 4 kontrolü
+    ; Check for 4
     MOVF    TEMP_CALC, W
     XORLW   0x66            ; 0x66 = '4'
     BTFSC   STATUS, 2
     RETLW   4
     
-    ; 5 kontrolü
+    ; Check for 5
     MOVF    TEMP_CALC, W
     XORLW   0x6D            ; 0x6D = '5'
     BTFSC   STATUS, 2
     RETLW   5
     
-    ; 6 kontrolü
+    ; Check for 6
     MOVF    TEMP_CALC, W
     XORLW   0x7D            ; 0x7D = '6'
     BTFSC   STATUS, 2
     RETLW   6
     
-    ; 7 kontrolü
+    ; Check for 7
     MOVF    TEMP_CALC, W
     XORLW   0x07            ; 0x07 = '7'
     BTFSC   STATUS, 2
     RETLW   7
     
-    ; 8 kontrolü
+    ; Check for 8
     MOVF    TEMP_CALC, W
     XORLW   0x7F            ; 0x7F = '8'
     BTFSC   STATUS, 2
     RETLW   8
     
-    ; 9 kontrolü
+    ; Check for 9
     MOVF    TEMP_CALC, W
     XORLW   0x6F            ; 0x6F = '9'
     BTFSC   STATUS, 2
     RETLW   9
     
-    ; Rakam de?il
+    ; Not a digit
     RETLW   0xFF
 
 ; --- INIT ---
