@@ -1,6 +1,6 @@
 ;=============================================================================
 ; FILE: Board_1/keypad.inc
-; AUTHOR: Hilal Öngör
+; AUTHOR: HILAL ONGOR
 ; BOARD: Board #1
 ; TASK: Implement Keypad scanning, 'A' interrupt, input parsing, 
 ;       and validation (10.0 to 50.0).
