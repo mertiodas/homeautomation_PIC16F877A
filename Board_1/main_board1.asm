@@ -110,10 +110,10 @@ MAIN_LOOP:
 ; ==========================================================
 
 
-        ;call Read_Ambient_Temp_ADC
-        ;call Read_Fan_Speed
-        ;call Temperature_Control_Logic
-        ;call Display_Multiplex_Routine
+        call Read_Ambient_Temp_ADC
+        call Read_Fan_Speed
+        call Temperature_Control_Logic
+        call Display_Multiplex_Routine
 
         goto MAIN_LOOP
 
