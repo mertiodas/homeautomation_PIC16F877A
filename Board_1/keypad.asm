@@ -1,6 +1,6 @@
 ;=============================================================================
 ; FILE: Board_1/keypad.inc
-; AUTHOR: Hilal Ongör
+; AUTHOR: Hilal Öngör
 ; BOARD: Board #1
 ; TASK: Implement Keypad scanning, 'A' interrupt, input parsing, 
 ;       and validation (10.0 to 50.0).
@@ -23,7 +23,7 @@
     CONFIG FOSC = XT
     CONFIG WDTE = OFF
     CONFIG PWRTE = ON
-    CONFIG BOREN = ON
+    CONFIG BOREN = OFF
     CONFIG LVP = OFF
     CONFIG CPD = OFF
     CONFIG WRT = OFF
@@ -41,6 +41,8 @@ DIGIT2:         DS 1
 DIGIT_FRAC:     DS 1
 TEMP_CALC:      DS 1
 HAS_DOT:        DS 1
+UART_RX_Byte:   DS 1
+UART_Flag:      DS 1
 
     ; --- RESET VECTOR ---
     PSECT resetVec, class=CODE, delta=2
@@ -53,6 +55,7 @@ resetVec:
 
 START:
     CALL    INIT_SYSTEM
+    CALL    INIT_Keypad
     
     BANKSEL KEY_VAL
     CLRF    KEY_VAL
@@ -69,7 +72,7 @@ START:
     MOVLW   0x40
     MOVWF   PORTD
 
-MAIN_LOOP:
+MAIN_LOOP1:
     ; 1. Scan Keypad
     CALL    SCAN_KEYPAD
     BANKSEL KEY_VAL
@@ -348,10 +351,10 @@ WAIT_RELEASE:
     MOVF    KEY_VAL, W
     BTFSS   STATUS, 2
     GOTO    WAIT_RELEASE
-    GOTO    MAIN_LOOP
+    GOTO    MAIN_LOOP1
 
 NO_KEY:
-    GOTO    MAIN_LOOP
+    GOTO    MAIN_LOOP1
 
 GET_NUMBER:
     BANKSEL TEMP_CALC
@@ -439,6 +442,16 @@ INIT_SYSTEM:
     MOVLW   0xF0
     MOVWF   PORTB
     BSF     PORTA, 5
+    RETURN
+
+; --- KEYPAD INIT (Stub for main compatibility) ---
+INIT_Keypad:
+    ; Keypad already initialized in INIT_SYSTEM
+    RETURN
+
+; --- KEYPAD INTERRUPT HANDLER (Stub for main compatibility) ---
+Keypad_Interrupt_Handler:
+    ; Handle interrupt if needed
     RETURN
 
 ; --- SCAN ---
@@ -549,5 +562,3 @@ LONG_INNER2:
     DECFSZ  DELAY_VAR2, F
     GOTO    LONG_OUTER2
     RETURN
-
-    END resetVec
