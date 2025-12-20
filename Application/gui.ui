@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1006</width>
-    <height>651</height>
+    <height>533</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -91,8 +91,8 @@ QLabel[class=&quot;ValueLabel&quot;] {
 </string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
-    <item>
+   <layout class="QGridLayout" name="gridLayout_4">
+    <item row="0" column="0">
      <widget class="QGroupBox" name="groupBox">
       <property name="maximumSize">
        <size>
@@ -104,6 +104,23 @@ QLabel[class=&quot;ValueLabel&quot;] {
        <string/>
       </property>
       <layout class="QGridLayout" name="gridLayout">
+       <item row="2" column="0">
+        <widget class="QLineEdit" name="acInput"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Enter Desired Temperature (Range 10.0-50.0)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QPushButton" name="acApply">
+         <property name="text">
+          <string>APPLY</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="0">
         <widget class="QLabel" name="acLabel">
          <property name="font">
@@ -120,27 +137,10 @@ QLabel[class=&quot;ValueLabel&quot;] {
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Enter Desired Temperature (Range 10.0-50.0)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLineEdit" name="acInput"/>
-       </item>
-       <item row="3" column="0">
-        <widget class="QPushButton" name="pushButton_2">
-         <property name="text">
-          <string>APPLY</string>
-         </property>
-        </widget>
-       </item>
       </layout>
      </widget>
     </item>
-    <item>
+    <item row="0" column="1">
      <widget class="QGroupBox" name="groupBox_2">
       <property name="maximumSize">
        <size>
@@ -196,7 +196,7 @@ QLabel[class=&quot;ValueLabel&quot;] {
         <widget class="QLineEdit" name="curtainInput"/>
        </item>
        <item row="3" column="0">
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="curtainApply">
          <property name="text">
           <string>APPLY</string>
          </property>
@@ -205,7 +205,7 @@ QLabel[class=&quot;ValueLabel&quot;] {
       </layout>
      </widget>
     </item>
-    <item>
+    <item row="0" column="2">
      <widget class="QGroupBox" name="groupBox_5">
       <property name="maximumSize">
        <size>
@@ -470,6 +470,13 @@ QLabel[class=&quot;ValueLabel&quot;] {
         </widget>
        </item>
       </layout>
+     </widget>
+    </item>
+    <item row="1" column="2">
+     <widget class="QPushButton" name="update">
+      <property name="text">
+       <string>UPDATE</string>
+      </property>
      </widget>
     </item>
    </layout>
