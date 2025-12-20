@@ -1,13 +1,16 @@
 ; ======================================================
 ; FILE: main_board1.asm
-; AUTHOR : SAFIULLAH SEDIQI 152120211031	
-; CLEAN + TEST COMMENT BLOCK INCLUDED
+; AUTHOR : SAFIULLAH SEDIQI 152120211031
+; BOARD  : PIC16F877A - BOARD #1
+; DESC   : Home Air Conditioner System
 ; ======================================================
 
         processor 16F877A
         #include <xc.inc>
 
-; --- CONFIG ---
+; --------------------------------------------------
+; CONFIGURATION BITS
+; --------------------------------------------------
 CONFIG  FOSC=XT, WDTE=OFF, PWRTE=ON, BOREN=OFF, LVP=OFF, CPD=OFF, WRT=OFF, CP=OFF
 
 
@@ -15,11 +18,13 @@ CONFIG  FOSC=XT, WDTE=OFF, PWRTE=ON, BOREN=OFF, LVP=OFF, CPD=OFF, WRT=OFF, CP=OF
 ; GLOBAL VARIABLES (BANK0)
 ; --------------------------------------------------
         PSECT udata_bank0
+
 DesiredTemp_INT:       DS 1
 DesiredTemp_FRAC:      DS 1
 AmbientTemp_INT:       DS 1
 AmbientTemp_FRAC:      DS 1
 FanSpeed_RPS:          DS 1
+
 Timer1_Overflow_Count: DS 1
 Display_Data_Select:   DS 1
 Display_Timer_2sec:    DS 1
@@ -45,16 +50,16 @@ ISR:
         movf    PCLATH, W
         movwf   PCLATH_TEMP
 
-        ; UART RX
+        ; UART RX INTERRUPT
         btfsc   PIR1, PIR1_RCIF_POSITION
         call    UART_RX_ISR
 
-        ; KEYPAD
+        ; KEYPAD INTERRUPT
         btfsc   INTCON, INTCON_RBIF_POSITION
         call    Keypad_Interrupt_Handler
         bcf     INTCON, INTCON_RBIF_POSITION
 
-        ; TIMER1
+        ; TIMER1 INTERRUPT
         btfsc   PIR1, PIR1_TMR1IF_POSITION
         call    Timer1_ISR_Handler
 
@@ -76,7 +81,7 @@ ISR:
 
 
 ; --------------------------------------------------
-; MAIN
+; MAIN PROGRAM
 ; --------------------------------------------------
         PSECT code
 
@@ -87,64 +92,59 @@ MAIN:
 
 MAIN_LOOP:
 
-; ==========================================================
-; ========== SCENARIO-1 TEST BLOCK (commented) =============
-; ==========================================================
+; ==================================================
+; TEST BLOCK (COMMENTED ? FOR REPORT)
+; ==================================================
+; Ambient = 15.0 °C
+; Desired = 25.0 °C
+; Expected: FAN ON, HEATER OFF
 ;
-; ====== SCENARIO ====================================
-; Ambient 15.0°C, Desired 25.0°C ? HEATER ON (RE0=1)
+       movlw   15
+       movwf   AmbientTemp_INT
+       clrf    AmbientTemp_FRAC
 
-      movlw   15
-      movwf   AmbientTemp_INT
-      clrf    AmbientTemp_FRAC
+       movlw   25
+       movwf   DesiredTemp_INT
+       clrf    DesiredTemp_FRAC
 
-      movlw   25
-      movwf   DesiredTemp_INT
-      clrf    DesiredTemp_FRAC
+       call Temperature_Control_Logic
+       call delay_big
+; ==================================================
 
-      call Temperature_Control_Logic
-      call delay_big
-;
-; ==========================================================
-; ================ END OF TEST BLOCK =======================
-; ==========================================================
-
-
-        call Read_Ambient_Temp_ADC
-        call Read_Fan_Speed
-        call Temperature_Control_Logic
-        call Display_Multiplex_Routine
+        ;call Read_Ambient_Temp_ADC
+        ;call Read_Fan_Speed
+        ;call Temperature_Control_Logic
+        ;call Display_Multiplex_Routine
 
         goto MAIN_LOOP
 
 
-
 ; --------------------------------------------------
-; PORT INIT
+; PORT INITIALIZATION
 ; --------------------------------------------------
 init_ports_and_config:
 
         BANKSEL TRISA
-        movlw 0x01
-        movwf TRISA
+        movlw   0x01            ; RA0 analog input (LM35)
+        movwf   TRISA
 
         BANKSEL TRISB
-        movlw 0x0F
-        movwf TRISB
+        movlw   0x0F            ; RB0?RB3 keypad
+        movwf   TRISB
 
         BANKSEL TRISC
-        movlw 0x81
-        movwf TRISC
+        movlw   0x81            ; UART RX/TX
+        movwf   TRISC
 
         BANKSEL TRISD
-        clrf TRISD
+        clrf    TRISD           ; Display
 
         BANKSEL TRISE
-        clrf TRISE
+        clrf    TRISE           ; RE0 Heater, RE1 Fan
 
         BANKSEL ADCON1
-        movlw 0x8E
-        movwf ADCON1
+        movlw   0x8E
+        movwf   ADCON1
 
         BANKSEL PORTA
         clrf PORTA
@@ -157,18 +157,19 @@ init_ports_and_config:
         BANKSEL PORTE
         clrf PORTE
 
+        ; INTERRUPTS
         bcf INTCON, INTCON_GIE_POSITION
         bsf INTCON, INTCON_PEIE_POSITION
         bsf INTCON, INTCON_RBIE_POSITION
         bsf PIE1, PIE1_RCIE_POSITION
         bsf PIE1, PIE1_TMR1IE_POSITION
         bsf INTCON, INTCON_GIE_POSITION
+
         return
 
 
-
 ; --------------------------------------------------
-; PERIPHERAL INIT
+; PERIPHERAL INITIALIZATION
 ; --------------------------------------------------
 init_peripherals:
         call INIT_UART
@@ -178,9 +179,8 @@ init_peripherals:
         return
 
 
-
 ; --------------------------------------------------
-; RAM INIT
+; RAM INITIALIZATION
 ; --------------------------------------------------
 init_ram_vars:
         clrf DesiredTemp_INT
@@ -194,79 +194,73 @@ init_ram_vars:
         return
 
 
-
 ; --------------------------------------------------
-; TEMPERATURE CONTROL LOGIC
+; TEMPERATURE CONTROL LOGIC (FIXED)
 ; --------------------------------------------------
 Temperature_Control_Logic:
 
-        movf AmbientTemp_INT, W     ; W = Ambient_INT
-        subwf DesiredTemp_INT, W    ; Operation: Desired_INT - Ambient_INT (W - f)
+        movf AmbientTemp_INT, W
+        subwf DesiredTemp_INT, W     ; Desired - Ambient
 
-        btfsc STATUS, STATUS_Z_POSITION ; If Z=1 (EQUAL), check fractional part.
+        btfsc STATUS, STATUS_Z_POSITION
         goto Compare_Frac
 
-        ; If Z=0 (NOT EQUAL).
-        ; C=1 means (Desired >= Ambient)
-        ; C=0 means (Desired < Ambient)
+        ; Z=0
+        ; C=1 -> Desired > Ambient
+        ; C=0 -> Desired < Ambient
 
         btfss STATUS, STATUS_C_POSITION
-        goto COOLER_ON            ; C=0, Z=0 -> Desired < Ambient -> Ambient HIGH -> COOLER ON
-        goto HEATER_ON            ; C=1, Z=0 -> Desired > Ambient -> Ambient LOW -> HEATER ON
+        goto HEATER_ON
+        goto COOLER_ON
+
 
 Compare_Frac:
-        movf AmbientTemp_FRAC, W    ; W = Ambient_FRAC
-        subwf DesiredTemp_FRAC, W   ; Operation: Desired_FRAC - Ambient_FRAC (W - f)
+        movf AmbientTemp_FRAC, W
+        subwf DesiredTemp_FRAC, W
 
-        btfsc STATUS, STATUS_Z_POSITION ; If Z=1 (EQUAL). Fully equal.
-        goto BOTH_OFF             ; Both parts are equal -> OFF
-
-        ; If Z=0 (NOT EQUAL). (Integer part is equal, fractional part is different)
-        ; C=1 means (Desired >= Ambient)
-        ; C=0 means (Desired < Ambient)
+        btfsc STATUS, STATUS_Z_POSITION
+        goto BOTH_OFF
 
         btfss STATUS, STATUS_C_POSITION
-        goto COOLER_ON            ; C=0, Z=0 -> Desired_FRAC < Ambient_FRAC -> Ambient HIGH -> COOLER ON
-        goto HEATER_ON            ; C=1, Z=0 -> Desired_FRAC > Ambient_FRAC -> Ambient LOW -> HEATER ON
+        goto HEATER_ON
+        goto COOLER_ON
 
 
 HEATER_ON:
         BANKSEL PORTE
-        bcf PORTE,1               ; Cooler OFF (RE1)
-        bsf PORTE,0               ; Heater ON (RE0)
+        bcf PORTE,1               ; Fan OFF
+        bsf PORTE,0               ; Heater ON
         return
 
 COOLER_ON:
         BANKSEL PORTE
-        bcf PORTE,0               ; Heater OFF (RE0)
-        bsf PORTE,1               ; Cooler ON (RE1)
+        bcf PORTE,0               ; Heater OFF
+        bsf PORTE,1               ; Fan ON
         return
 
 BOTH_OFF:
         BANKSEL PORTE
-        bcf PORTE,0               ; Heater OFF (RE0)
-        bcf PORTE,1               ; Cooler OFF (RE1)
+        bcf PORTE,0
+        bcf PORTE,1
         return
-
 
 
 ; --------------------------------------------------
 ; DELAY ROUTINE
 ; --------------------------------------------------
 delay_big:
-    movlw   0xAF
-    movwf   d1
+        movlw   0xAF
+        movwf   d1
 d1_loop:
-    movlw   0xFF
-    movwf   d2
+        movlw   0xFF
+        movwf   d2
 d2_loop:
-    nop
-    decfsz  d2, F
-    goto d2_loop
-    decfsz  d1, F
-    goto d1_loop
-    return
-
+        nop
+        decfsz  d2, F
+        goto    d2_loop
+        decfsz  d1, F
+        goto    d1_loop
+        return
 
 
 ; --------------------------------------------------
