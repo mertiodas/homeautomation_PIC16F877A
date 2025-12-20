@@ -1,28 +1,28 @@
 ; ======================================================
 ; MODULE: keypad.asm
 ; AUTHOR: HILAL ONGOR
-; TASK: Keypad Scanning, Input Parsing, Validation (10.0-50.0)
-; COMPATIBILITY: Matches main_board1.asm structure
+; TASK: Keypad Scanning, Parsing, Validation (10.0-50.0)
+; NOTE: NO 'END' DIRECTIVE (Compatible with Main Include)
 ; ======================================================
 
         PROCESSOR 16F877A
         #include <xc.inc>
 
 ; ============================================================
-; EXTERNAL DECLARATIONS (Variables from MAIN)
+; EXTERNAL DECLARATIONS (Variables defined in MAIN)
 ; ============================================================
-        ; Main loop variables
+        ; Main global variables (Shared Memory)
         EXTERN _DesiredTemp_INT
         EXTERN _DesiredTemp_FRAC
         
-        ; Keypad variables defined in MAIN
+        ; Keypad specific variables (Defined in MAIN)
         EXTERN _KEY_VAL, _LAST_KEY, _STATE
         EXTERN _DIGIT1, _DIGIT2, _DIGIT_FRAC
         EXTERN _TEMP_CALC, _HAS_DOT
         EXTERN _DELAY_VAR, _DELAY_VAR2
 
 ; ============================================================
-; GLOBAL DECLARATIONS (Functions exported to MAIN)
+; GLOBAL DECLARATIONS (Functions accessible by MAIN)
 ; ============================================================
         GLOBAL _INIT_Keypad
         GLOBAL _Keypad_Process
@@ -35,14 +35,12 @@
 
 ; --------------------------------------------------
 ; INIT_Keypad
-; Called from init_peripherals in MAIN
+; Called by Main during system startup
 ; --------------------------------------------------
 _INIT_Keypad:
-        ; Configure PORTB for Keypad (RB0-3 Inputs, RB4-7 Outputs based on Main config)
-        ; Main sets TRISB to 0x0F.
-        
+        ; Clear all variables, Set State to 0 (Idle)
         BANKSEL _STATE
-        clrf    _STATE          ; State 0: Idle / Waiting for 'A'
+        clrf    _STATE
         clrf    _KEY_VAL
         clrf    _DIGIT1
         clrf    _DIGIT2
@@ -51,24 +49,17 @@ _INIT_Keypad:
 
 ; --------------------------------------------------
 ; Keypad_Interrupt_Handler
-; Called from ISR in MAIN when RBIF is set
-; Task: "Pressing button A will run the interrupt routine"
+; Called by ISR when 'A' or any key triggers RB Change
 ; --------------------------------------------------
 _Keypad_Interrupt_Handler:
-        ; Read PORTB to clear mismatch condition (Essential for ISR)
+        ; Read PORTB to clear mismatch condition
         BANKSEL PORTB
         movf    PORTB, W
-        
-        ; Note: Ideally, we scan here to see if 'A' is pressed.
-        ; But full scanning in ISR is slow. 
-        ; We will rely on the main loop to process the input,
-        ; The ISR just ensures the flag is cleared so main keeps running.
         return
 
 ; --------------------------------------------------
 ; Keypad_Process
-; Called from MAIN_LOOP
-; State Machine Implementation
+; Called repeatedly inside MAIN_LOOP
 ; --------------------------------------------------
 _Keypad_Process:
         ; 1. Scan Keypad
@@ -76,71 +67,70 @@ _Keypad_Process:
         
         BANKSEL _KEY_VAL
         movf    _KEY_VAL, W
-        btfsc   STATUS, 2       ; If Zero (No Key), Return
+        btfsc   STATUS, 2       ; If no key (0), return
         return
 
         ; 2. Debounce
         call    DELAY_MS_KEY
         
-        ; 3. Save Key to Last Key
+        ; 3. Save current key
         BANKSEL _KEY_VAL
         movf    _KEY_VAL, W
         BANKSEL _LAST_KEY
         movwf   _LAST_KEY
 
-        ; 4. Check for 'A' (Reset / Start) - ALWAYS ACTIVE
+        ; 4. Check 'A' (ALWAYS RESET)
         movf    _LAST_KEY, W
-        xorlw   0x41            ; 'A' ASCII Code (depends on mapping, let's assume ASCII)
-        ; Adjust mapping below if needed. Using direct values from Scan routine.
-        ; Let's assume Scan returns mapped ASCII.
+        xorlw   'A'
+        btfsc   STATUS, 2
+        goto    State_0_Idle    ; Go to Idle/Start
         
         ; --- STATE MACHINE ---
         BANKSEL _STATE
         movf    _STATE, W
         
-        ; State 0: Idle (Wait for 'A')
         xorlw   0
         btfsc   STATUS, 2
-        goto    State_0_Idle
+        goto    State_0_Idle    ; Waiting for 'A'
         
         movf    _STATE, W
         xorlw   1
         btfsc   STATUS, 2
-        goto    State_1_Digit1
+        goto    State_1_Digit1  ; Tens digit
 
         movf    _STATE, W
         xorlw   2
         btfsc   STATUS, 2
-        goto    State_2_Digit2
+        goto    State_2_Digit2  ; Ones digit
 
         movf    _STATE, W
         xorlw   3
         btfsc   STATUS, 2
-        goto    State_3_Dot
+        goto    State_3_Dot     ; Decimal point
 
         movf    _STATE, W
         xorlw   4
         btfsc   STATUS, 2
-        goto    State_4_Frac
+        goto    State_4_Frac    ; Fractional digit
         
         movf    _STATE, W
         xorlw   5
         btfsc   STATUS, 2
-        goto    State_5_Enter
+        goto    State_5_Enter   ; Confirm (#)
         
         return
 
 ; --- STATES ---
 
 State_0_Idle:
-        ; Wait for 'A' to start input
+        ; Only accept 'A' to start
         BANKSEL _LAST_KEY
         movf    _LAST_KEY, W
-        xorlw   'A'             ; Check if key is 'A'
+        xorlw   'A'
         btfss   STATUS, 2
-        return                  ; Not 'A', ignore
+        return                  ; Ignore other keys
         
-        ; 'A' Pressed: Reset variables and go to State 1
+        ; 'A' Pressed: Reset temp variables
         BANKSEL _DIGIT1
         clrf    _DIGIT1
         clrf    _DIGIT2
@@ -152,42 +142,40 @@ State_0_Idle:
         return
 
 State_1_Digit1:
-        ; Expecting 1st Digit (Tens)
+        ; Get Tens Digit
         call    GET_NUMERIC_VAL
         movwf   _TEMP_CALC
-        incf    _TEMP_CALC, W   ; Check if 0xFF (Error)
+        incf    _TEMP_CALC, W   ; Check 0xFF
         btfsc   STATUS, 2
-        return                  ; Not a number, ignore
+        return                  ; Not a number
         
-        ; Save Digit 1
         BANKSEL _TEMP_CALC
         movf    _TEMP_CALC, W
         BANKSEL _DIGIT1
         movwf   _DIGIT1
         
-        ; Next State
         BANKSEL _STATE
         movlw   2
         movwf   _STATE
         return
 
 State_2_Digit2:
-        ; Expecting 2nd Digit (Ones) OR Dot (if single digit tens)
-        ; Check for Dot '.'
+        ; Get Ones Digit OR Dot
+        
+        ; Check Dot
         BANKSEL _LAST_KEY
         movf    _LAST_KEY, W
-        xorlw   '*'             ; Assuming '*' is used for '.' as per task usually
+        xorlw   '*'             ; '*' is Dot
         btfsc   STATUS, 2
         goto    Dot_Pressed_Early
 
-        ; Check for Number
+        ; Check Number
         call    GET_NUMERIC_VAL
         movwf   _TEMP_CALC
         incf    _TEMP_CALC, W
         btfsc   STATUS, 2
-        return                  ; Invalid input
+        return                  
         
-        ; Save Digit 2
         BANKSEL _TEMP_CALC
         movf    _TEMP_CALC, W
         BANKSEL _DIGIT2
@@ -199,22 +187,20 @@ State_2_Digit2:
         return
 
 Dot_Pressed_Early:
-        ; User pressed '.' after 1 digit. 
-        ; Shift D1 -> D2, set D1=0? No, task says "Max 2 digits integral".
-        ; Example: "5." -> D1=5. This is valid.
-        ; Move to State 4 (Frac)
+        ; User typed "X." (e.g., "5.")
+        ; Digit1=5, Digit2=0. Go to Frac.
         BANKSEL _STATE
         movlw   4
         movwf   _STATE
         return
 
 State_3_Dot:
-        ; Expecting '.'
+        ; Expect Dot
         BANKSEL _LAST_KEY
         movf    _LAST_KEY, W
-        xorlw   '*'             ; Keypad '*' represents '.'
+        xorlw   '*'
         btfss   STATUS, 2
-        return                  ; Ignore other keys
+        return
         
         BANKSEL _STATE
         movlw   4
@@ -222,7 +208,7 @@ State_3_Dot:
         return
 
 State_4_Frac:
-        ; Expecting Fractional Digit
+        ; Get Fractional Digit
         call    GET_NUMERIC_VAL
         movwf   _TEMP_CALC
         incf    _TEMP_CALC, W
@@ -240,76 +226,65 @@ State_4_Frac:
         return
 
 State_5_Enter:
-        ; Expecting '#' to Confirm
+        ; Expect Enter (#)
         BANKSEL _LAST_KEY
         movf    _LAST_KEY, W
         xorlw   '#'
         btfss   STATUS, 2
         return
         
-        ; Validate and Update
+        ; Proceed to Validation
         goto    VALIDATE_AND_UPDATE
 
 ; --------------------------------------------------
-; VALIDATE AND UPDATE
-; Rule: 10.0 <= Temp <= 50.0
+; VALIDATE & UPDATE
+; Range: 10.0 to 50.0
 ; --------------------------------------------------
 VALIDATE_AND_UPDATE:
-        ; Calculate Total Integer: (Digit1 * 10) + Digit2
-        
-        ; 1. Check if single digit entry logic applies
-        ; If user entered "9.", Digit1=9, Digit2=0. Value 90? No.
-        ; NOTE: Simple logic: 
-        ; DesiredTemp_INT = (Digit1 * 10) + Digit2.
-        
-        ; Range Check:
-        ; Min: 10
-        ; Max: 50
-        
-        ; Check Tens Digit (_DIGIT1)
+        ; 1. Check Tens (_DIGIT1)
         BANKSEL _DIGIT1
         movf    _DIGIT1, W
-        sublw   0               ; If D1 < 1 (i.e., 0)
-        btfsc   STATUS, 2       ; If D1 == 0
-        goto    Invalid_Input   ; < 10.0
+        sublw   0
+        btfsc   STATUS, 2       ; If 0 -> Fail (<10)
+        goto    Invalid_Input
         
         movf    _DIGIT1, W
         sublw   5
-        btfss   STATUS, 0       ; If 5 < D1 (i.e. 6,7,8,9)
-        goto    Invalid_Input   ; > 59.9
+        btfss   STATUS, 0       ; If >5 -> Fail (>59)
+        goto    Invalid_Input
         
-        ; If D1 == 5, Check Ones and Frac
+        ; If 5, check limits
         movf    _DIGIT1, W
         xorlw   5
         btfss   STATUS, 2
-        goto    Valid_Range     ; If D1 is 1,2,3,4 -> Valid
+        goto    Valid_Range     ; 1,2,3,4 -> OK
         
-        ; D1 is 5. Check D2.
+        ; Tens=5. Check Ones.
         BANKSEL _DIGIT2
         movf    _DIGIT2, W
         xorlw   0
-        btfss   STATUS, 2       ; If D2 != 0
-        goto    Invalid_Input   ; 51, 52... Invalid.
+        btfss   STATUS, 2       ; If not 0 -> Fail (51...)
+        goto    Invalid_Input
         
-        ; D1=5, D2=0 (50). Check Frac.
+        ; Tens=5, Ones=0 (50). Check Frac.
         BANKSEL _DIGIT_FRAC
         movf    _DIGIT_FRAC, W
         xorlw   0
-        btfss   STATUS, 2       ; If Frac != 0
-        goto    Invalid_Input   ; 50.1... Invalid.
+        btfss   STATUS, 2       ; If not 0 -> Fail (50.1)
+        goto    Invalid_Input
         
 Valid_Range:
-        ; Valid Input! Update Global Variables.
+        ; --- UPDATE SYSTEM VARIABLES ---
+        ; DesiredTemp_INT = (D1 * 10) + D2
         
-        ; DesiredTemp_INT = (_DIGIT1 * 10) + _DIGIT2
         BANKSEL _DIGIT1
         movf    _DIGIT1, W
-        movwf   _TEMP_CALC      ; Temp = D1
+        movwf   _TEMP_CALC
         
-        ; Multiply by 10 (x8 + x2)
+        ; Multiply by 10 (Shift algorithm)
         bcf     STATUS, 0
         rlf     _TEMP_CALC, F   ; x2
-        movf    _TEMP_CALC, W   ; Save x2
+        movf    _TEMP_CALC, W
         
         bcf     STATUS, 0
         rlf     _TEMP_CALC, F   ; x4
@@ -321,21 +296,22 @@ Valid_Range:
         BANKSEL _DIGIT2
         movf    _DIGIT2, W
         BANKSEL _TEMP_CALC
-        addwf   _TEMP_CALC, W   ; W = (D1*10) + D2
+        addwf   _TEMP_CALC, W   ; W = Final Integer
         
+        ; Write to Main Variable
         BANKSEL _DesiredTemp_INT
         movwf   _DesiredTemp_INT
         
+        ; Write Fraction
         BANKSEL _DIGIT_FRAC
         movf    _DIGIT_FRAC, W
         BANKSEL _DesiredTemp_FRAC
         movwf   _DesiredTemp_FRAC
         
-        ; Reset State
         goto    Reset_State
 
 Invalid_Input:
-        ; Reject input, do not update.
+        ; Do nothing (Reject)
         goto    Reset_State
 
 Reset_State:
@@ -345,8 +321,6 @@ Reset_State:
 
 ; --------------------------------------------------
 ; HELPER: GET_NUMERIC_VAL
-; Converts ASCII/Keycode to Number (0-9)
-; Returns 0xFF if not a number
 ; --------------------------------------------------
 GET_NUMERIC_VAL:
         BANKSEL _LAST_KEY
@@ -404,37 +378,29 @@ GET_NUMERIC_VAL:
         retlw   0xFF
 
 ; --------------------------------------------------
-; SCAN_KEYPAD
-; Scans 4x4 or 4x3 Keypad
-; Returns ASCII in _KEY_VAL (or 0 if no key)
+; SCAN_KEYPAD (TRISB=0x0F: RB0-3 In, RB4-7 Out)
 ; --------------------------------------------------
 SCAN_KEYPAD:
-        ; Configuration based on Safiullah's Main:
-        ; PORTB low nibble = Input, high nibble = Output
-        ; (Rows and Cols wiring depends on Proteus/Hardware)
-        ; Standard Multiplexing
-        
         BANKSEL _KEY_VAL
         clrf    _KEY_VAL
 
-        ; Scan Column 1 (RB4 Low)
+        ; Col 1 (RB4 Low)
         BANKSEL PORTB
-        movlw   b'11101111'     ; RB4 Low
+        movlw   b'11101111'     
         movwf   PORTB
         nop
         nop
-        ; Check Rows (RB0-3)
         btfss   PORTB, 0
-        retlw   '1'             ; Row 1
+        retlw   '1'
         btfss   PORTB, 1
-        retlw   '4'             ; Row 2
+        retlw   '4'
         btfss   PORTB, 2
-        retlw   '7'             ; Row 3
+        retlw   '7'
         btfss   PORTB, 3
-        retlw   '*'             ; Row 4
+        retlw   '*'
 
-        ; Scan Column 2 (RB5 Low)
-        movlw   b'11011111'     ; RB5 Low
+        ; Col 2 (RB5 Low)
+        movlw   b'11011111'     
         movwf   PORTB
         nop
         nop
@@ -447,8 +413,8 @@ SCAN_KEYPAD:
         btfss   PORTB, 3
         retlw   '0'
 
-        ; Scan Column 3 (RB6 Low)
-        movlw   b'10111111'     ; RB6 Low
+        ; Col 3 (RB6 Low)
+        movlw   b'10111111'     
         movwf   PORTB
         nop
         nop
@@ -461,8 +427,8 @@ SCAN_KEYPAD:
         btfss   PORTB, 3
         retlw   '#'
 
-        ; Scan Column 4 (RB7 Low) - For A,B,C,D
-        movlw   b'01111111'     ; RB7 Low
+        ; Col 4 (RB7 Low)
+        movlw   b'01111111'     
         movwf   PORTB
         nop
         nop
@@ -475,7 +441,7 @@ SCAN_KEYPAD:
         btfss   PORTB, 3
         retlw   'D'
 
-        ; Reset Port (All High to detect interrupt)
+        ; Reset Port (All High for ISR)
         movlw   0xF0
         movwf   PORTB
         
@@ -483,7 +449,6 @@ SCAN_KEYPAD:
 
 ; --------------------------------------------------
 ; DELAY_MS_KEY
-; Simple delay using variables from Main
 ; --------------------------------------------------
 DELAY_MS_KEY:
         BANKSEL _DELAY_VAR
@@ -493,4 +458,3 @@ loop1:  decfsz  _DELAY_VAR, F
         goto    loop1
         return
 
-        END
