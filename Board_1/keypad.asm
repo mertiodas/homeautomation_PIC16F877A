@@ -3,7 +3,7 @@
 ; AUTHOR: HILAL ONGOR
 ; TASK: Keypad Scanning, Parsing, Validation (10.0-50.0)
 ; COMPATIBILITY: Matches main_board1.asm (Shared Memory Logic)
-; NOTE: Binary literals changed to HEX for compatibility
+; NOTE: Fixed syntax errors (HEX format + Single line EXTERN)
 ; ======================================================
 
         PROCESSOR 16F877A
@@ -17,10 +17,17 @@
         EXTERN _DesiredTemp_FRAC
         
         ; Keypad specific variables (Defined in MAIN)
-        EXTERN _KEY_VAL, _LAST_KEY, _STATE
-        EXTERN _DIGIT1, _DIGIT2, _DIGIT_FRAC
-        EXTERN _TEMP_CALC, _HAS_DOT
-        EXTERN _DELAY_VAR, _DELAY_VAR2
+        ; Her biri ayrı satırda olmalı (Syntax hatasını önler)
+        EXTERN _KEY_VAL
+        EXTERN _LAST_KEY
+        EXTERN _STATE
+        EXTERN _DIGIT1
+        EXTERN _DIGIT2
+        EXTERN _DIGIT_FRAC
+        EXTERN _TEMP_CALC
+        EXTERN _HAS_DOT
+        EXTERN _DELAY_VAR
+        EXTERN _DELAY_VAR2
 
 ; ============================================================
 ; GLOBAL DECLARATIONS (Functions accessible by MAIN)
@@ -378,12 +385,13 @@ GET_NUMERIC_VAL:
 
 ; --------------------------------------------------
 ; SCAN_KEYPAD
+; NOTE: Changed binary literals (b'...') to HEX (0x...) to fix "undefined symbol b" error.
 ; --------------------------------------------------
 SCAN_KEYPAD:
         BANKSEL _KEY_VAL
         clrf    _KEY_VAL
 
-        ; Col 1 (RB4 Low) - Replaced binary with HEX for safety
+        ; Col 1 (RB4 Low)
         BANKSEL PORTB
         movlw   0xEF            ; Was b'11101111'
         movwf   PORTB
