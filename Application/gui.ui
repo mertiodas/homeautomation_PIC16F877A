@@ -482,7 +482,7 @@ QLabel[class=&quot;ValueLabel&quot;] {
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QMenuBar" name="menubar">
+  <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
@@ -491,33 +491,12 @@ QLabel[class=&quot;ValueLabel&quot;] {
      <height>22</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuAir_Conditioner">
-    <property name="title">
-     <string>Air Conditioner</string>
-    </property>
-    <addaction name="menuTemp"/>
-   </widget>
-   <widget class="QMenu" name="menuCurtain">
-    <property name="title">
-     <string>Curtain Control</string>
-    </property>
-    <addaction name="menuControl"/>
-   </widget>
-   <widget class="QMenu" name="exit">
-    <property name="title">
-     <string>Exit</string>
-    </property>
-   </widget>
    <widget class="QMenu" name="menuSave">
     <property name="title">
-     <string>Save </string>
+     <string>Save</string>
     </property>
-    <addaction name="save"/>
    </widget>
-   <addaction name="menuAir_Conditioner"/>
-   <addaction name="menuCurtain"/>
    <addaction name="menuSave"/>
-   <addaction name="exit"/>
   </widget>
   <action name="actionExit">
    <property name="text">
