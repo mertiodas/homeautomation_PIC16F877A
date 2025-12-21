@@ -327,6 +327,9 @@ class Ui_MainWindow(object):
         self.menuControl.setObjectName("menuControl")
         self.save = QtWidgets.QAction(MainWindow)
         self.save.setObjectName("save")
+        self.actionSave = QtWidgets.QAction(MainWindow)
+        self.actionSave.setObjectName("actionSave")
+        self.menuSave.addAction(self.actionSave)
         self.menuBar.addAction(self.menuSave.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -359,6 +362,7 @@ class Ui_MainWindow(object):
         self.menuTemp.setText(_translate("MainWindow", "Set Temperature"))
         self.menuControl.setText(_translate("MainWindow", "Control"))
         self.save.setText(_translate("MainWindow", "Save Data"))
+        self.actionSave.setText(_translate("MainWindow", "Save Data"))
 
 
 if __name__ == "__main__":

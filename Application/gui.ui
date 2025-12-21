@@ -495,6 +495,7 @@ QLabel[class=&quot;ValueLabel&quot;] {
     <property name="title">
      <string>Save</string>
     </property>
+    <addaction name="actionSave"/>
    </widget>
    <addaction name="menuSave"/>
   </widget>
@@ -514,6 +515,11 @@ QLabel[class=&quot;ValueLabel&quot;] {
    </property>
   </action>
   <action name="save">
+   <property name="text">
+    <string>Save Data</string>
+   </property>
+  </action>
+  <action name="actionSave">
    <property name="text">
     <string>Save Data</string>
    </property>

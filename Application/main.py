@@ -6,7 +6,8 @@ from AC import AirConditionerSystemConnection
 from curtain import CurtainControlSystemConnection
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-
+import csv
+from datetime import datetime
 
 
 class MainWindowLogic(QMainWindow, Ui_MainWindow):
@@ -18,7 +19,50 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
         self.acApply.clicked.connect(self.api_ac.setDesiredTemp)
         self.curtainApply.clicked.connect(self.api_curtain.setCurtainStatus)
         self.update.clicked.connect(self.handle_global_update)
+        self.menuSave.triggered.connect(self.handle_save)
 
+    def handle_save(self):
+        """Saves current sensor and system data to a CSV file."""
+        try:
+            # 1. Prepare the data row
+            # We fetch the latest values directly from our API objects
+            data_row = {
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Ambient_Temp": self.api_ac.getAmbientTemp(),
+                "Desired_Temp": self.api_ac.getDesiredTemp(),
+                "Fan_Speed": self.api_ac.getFanSpeed(),
+                "Outdoor_Temp": self.api_curtain.getOutdoorTemp(),
+                "Pressure": self.api_curtain.getOutdoorPress(),
+                "Light": self.api_curtain.getLightIntensity(),
+                "Curtain_Status": self.api_curtain._curtainStatus  # Accessing the internal var
+            }
+
+            # 2. Define filename
+            filename = "automation_data.csv"
+
+            # 3. Write to file (Append mode 'a' so we don't delete old data)
+            file_exists = False
+            try:
+                with open(filename, 'r') as f:
+                    file_exists = True
+            except FileNotFoundError:
+                file_exists = False
+
+            with open(filename, mode='a', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=data_row.keys())
+
+                # Write header only if file is new
+                if not file_exists:
+                    writer.writeheader()
+
+                writer.writerow(data_row)
+
+            self.statusBar().showMessage(f"Data saved to {filename}", 3000)
+            print(f"Successfully saved data at {data_row['Timestamp']}")
+
+        except Exception as e:
+            self.statusBar().showMessage(f"Save Failed: {e}", 4000)
+            print(f"Save Error: {e}")
     def handle_global_update(self):
         """
         Refreshes data from both boards.
