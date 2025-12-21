@@ -17,7 +17,7 @@ class CurtainControlSystemConnection(HomeAutomationSystemConnection):
         self.ui.outdoorTemp.setText(f"{temp:.1f} °C")
         self.ui.outdoorPressure.setText(f"{pressure:.1f} hPa")
         self.ui.lightIntensity.setText(f"{light:.0f} lx")
-        self.ui.curtainStatus.setText(f"{curtain:.0f} cm")
+        self.ui.curtainStatus.setText(f"{curtain:.0f} %")
     def getOutdoorTemp(self) -> float:
         # will get the value from PIC
         return self._outdoorTemperature
@@ -60,7 +60,7 @@ class CurtainControlSystemConnection(HomeAutomationSystemConnection):
             self.ui.outdoorTemp.setText(f"{temp:.1f} °C")
             self.ui.outdoorPressure.setText(f"{pressure:.1f} hPa")
             self.ui.lightIntensity.setText(f"{light:.0f} lx")
-            self.ui.curtainStatus.setText(f"{curtain:.0f} cm")
+            self.ui.curtainStatus.setText(f"{curtain:.0f} %")
 
     def setCurtainStatus(self) -> bool:
         """
