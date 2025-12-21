@@ -19,7 +19,7 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
         self.acApply.clicked.connect(self.api_ac.setDesiredTemp)
         self.curtainApply.clicked.connect(self.api_curtain.setCurtainStatus)
         self.update.clicked.connect(self.handle_global_update)
-        self.menuSave.triggered.connect(self.handle_save)
+        self.actionSave.triggered.connect(self.handle_save)
 
     def handle_save(self):
         """Saves current sensor and system data to a CSV file."""
