@@ -16,7 +16,7 @@ Temp_Ones:              DS 1
 Temp_Decimal:           DS 1
 Last_Key:               DS 1
 Key_Released:           DS 1
-Temp_Multiply:          DS 1    ; FIX: Çarpma için geçici değişken
+Temp_Multiply:          DS 1    
 
 ; --- Code Section ---
         PSECT keypad_code, class=CODE, delta=2
