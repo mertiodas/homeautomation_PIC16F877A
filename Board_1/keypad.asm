@@ -1,12 +1,13 @@
 ; ======================================================
-; MODULE: keypad.asm 
-; AUTHOR: HILAL 
+; MODULE: keypad.asm (FINAL VERSION)
+; AUTHOR: HILAL
 ; 4x4 Matrix Keypad - Temperature Input
 ; PORTB: RB0-RB3 (Columns Input), RB4-RB7 (Rows Output)
 ; User enters Desired Temperature (XX.X format)
+; Compatible with display.asm format
 ; ======================================================
 
-; --- Local RAM (BANK2) ---
+; --- Local RAM (BANK2) - Matching display.asm format ---
         PSECT udata_bank2
 
 Keypad_State:           DS 1
@@ -16,7 +17,7 @@ Temp_Ones:              DS 1
 Temp_Decimal:           DS 1
 Last_Key:               DS 1
 Key_Released:           DS 1
-Temp_Multiply:          DS 1    
+Temp_Multiply:          DS 1    ; For multiply operation
 
 ; --- Code Section ---
         PSECT keypad_code, class=CODE, delta=2
@@ -24,15 +25,19 @@ Temp_Multiply:          DS 1
 
 ; --------------------------------------------------
 ; INIT_Keypad
+; Initialize keypad pins and variables
 ; --------------------------------------------------
 INIT_Keypad:
+        ; PORTB setup: RB0-RB3 input (columns), RB4-RB7 output (rows)
         BANKSEL TRISB
         movlw   0x0F
         movwf   TRISB
         
+        ; Enable PORTB pull-ups
         BANKSEL OPTION_REG
         bcf     OPTION_REG, 7
         
+        ; Initialize variables
         BANKSEL Keypad_State
         clrf    Keypad_State
         clrf    Keypad_Digit_Count
@@ -43,6 +48,7 @@ INIT_Keypad:
         movlw   1
         movwf   Key_Released
         
+        ; Set initial DesiredTemp to 20.0°C
         BANKSEL DesiredTemp_INT
         movlw   20
         movwf   DesiredTemp_INT
@@ -53,16 +59,20 @@ INIT_Keypad:
 
 ; --------------------------------------------------
 ; Keypad_Interrupt_Handler
+; Called from ISR when RBIF is set
 ; --------------------------------------------------
 Keypad_Interrupt_Handler:
+        ; Read PORTB to clear mismatch
         BANKSEL PORTB
         movf    PORTB, W
         
+        ; Check if all keys released (all columns high)
         andlw   0x0F
         xorlw   0x0F
         btfsc   STATUS, STATUS_Z_POSITION
         goto    Key_Was_Released
         
+        ; Key pressed - check if it was already pressed
         BANKSEL Key_Released
         movf    Key_Released, W
         btfss   STATUS, STATUS_Z_POSITION
@@ -80,11 +90,11 @@ Key_Was_Released:
 
 ; --------------------------------------------------
 ; Scan_Keypad
+; Scan matrix to find which key is pressed
 ; --------------------------------------------------
 Scan_Keypad:
+        ; Row 1 (RB4 = 0): Keys 1, 2, 3
         BANKSEL PORTB
-        
-        ; Row 1
         movlw   0xE0
         movwf   PORTB
         nop
@@ -109,7 +119,7 @@ Scan_Keypad:
         btfsc   STATUS, STATUS_Z_POSITION
         goto    Key_3
         
-        ; Row 2
+        ; Row 2 (RB5 = 0): Keys 4, 5, 6
         BANKSEL PORTB
         movlw   0xD0
         movwf   PORTB
@@ -135,7 +145,7 @@ Scan_Keypad:
         btfsc   STATUS, STATUS_Z_POSITION
         goto    Key_6
         
-        ; Row 3
+        ; Row 3 (RB6 = 0): Keys 7, 8, 9
         BANKSEL PORTB
         movlw   0xB0
         movwf   PORTB
@@ -161,7 +171,7 @@ Scan_Keypad:
         btfsc   STATUS, STATUS_Z_POSITION
         goto    Key_9
         
-        ; Row 4
+        ; Row 4 (RB7 = 0): Keys *, 0, #
         BANKSEL PORTB
         movlw   0x70
         movwf   PORTB
@@ -187,6 +197,7 @@ Scan_Keypad:
         btfsc   STATUS, STATUS_Z_POSITION
         goto    Key_Hash
         
+        ; Restore PORTB
         BANKSEL PORTB
         movlw   0xF0
         movwf   PORTB
@@ -194,7 +205,7 @@ Scan_Keypad:
 
 
 ; --------------------------------------------------
-; KEY HANDLERS
+; KEY HANDLERS - Process key presses
 ; --------------------------------------------------
 Key_0:
         movlw   0
@@ -238,12 +249,17 @@ Key_9:
 
 
 ; --------------------------------------------------
-; Process_Digit (FIXED)
+; Process_Digit
+; Input: W contains digit (0-9)
+; Builds temperature in format XX.X
+; Valid range: 10.0 to 50.0 °C
 ; --------------------------------------------------
 Process_Digit:
+        ; Save digit
         BANKSEL Last_Key
         movwf   Last_Key
         
+        ; Check which digit position we're at
         BANKSEL Keypad_Digit_Count
         movf    Keypad_Digit_Count, W
         xorlw   0
@@ -262,9 +278,11 @@ Process_Digit:
         btfsc   STATUS, STATUS_Z_POSITION
         goto    Enter_Decimal
         
+        ; Already entered 3 digits - ignore
         goto    Process_Digit_Done
 
 Enter_Tens:
+        ; First digit (tens) - must be 1-5
         BANKSEL Last_Key
         movf    Last_Key, W
         BANKSEL Temp_Tens
@@ -275,7 +293,7 @@ Enter_Tens:
         btfsc   STATUS, STATUS_Z_POSITION
         goto    Invalid_Input
         
-        ; Check if > 5 (invalid)
+        ; Check if > 5 (invalid for 10-50 range)
         movlw   6
         BANKSEL Temp_Tens
         subwf   Temp_Tens, W
@@ -289,6 +307,7 @@ Tens_Valid:
         goto    Process_Digit_Done
 
 Enter_Ones:
+        ; Second digit (ones)
         BANKSEL Last_Key
         movf    Last_Key, W
         BANKSEL Temp_Ones
@@ -298,6 +317,7 @@ Enter_Ones:
         goto    Process_Digit_Done
 
 Enter_Decimal:
+        ; Third digit (decimal)
         BANKSEL Last_Key
         movf    Last_Key, W
         BANKSEL Temp_Decimal
@@ -307,6 +327,7 @@ Enter_Decimal:
         goto    Process_Digit_Done
 
 Invalid_Input:
+        ; Clear and start over
         BANKSEL Keypad_Digit_Count
         clrf    Keypad_Digit_Count
         BANKSEL Temp_Tens
@@ -315,6 +336,7 @@ Invalid_Input:
         clrf    Temp_Decimal
 
 Process_Digit_Done:
+        ; Restore PORTB
         BANKSEL PORTB
         movlw   0xF0
         movwf   PORTB
@@ -322,7 +344,7 @@ Process_Digit_Done:
 
 
 ; --------------------------------------------------
-; Key_Star - Clear
+; Key_Star - Clear input
 ; --------------------------------------------------
 Key_Star:
         BANKSEL Keypad_Digit_Count
@@ -332,6 +354,7 @@ Key_Star:
         clrf    Temp_Ones
         clrf    Temp_Decimal
         
+        ; Restore PORTB
         BANKSEL PORTB
         movlw   0xF0
         movwf   PORTB
@@ -339,10 +362,13 @@ Key_Star:
 
 
 ; --------------------------------------------------
-; Key_Hash - Confirm (FIXED)
+; Key_Hash - Confirm and save temperature
+; Format: XX.X (10.0 to 50.0 °C)
 ; --------------------------------------------------
 Key_Hash:
         BANKSEL Keypad_Digit_Count
+        
+        ; Check if at least 2 digits entered
         movf    Keypad_Digit_Count, W
         sublw   1
         btfsc   STATUS, STATUS_C_POSITION
@@ -354,8 +380,7 @@ Key_Hash:
         BANKSEL DesiredTemp_INT
         movwf   DesiredTemp_INT
         
-        ; FIX: Use Temp_Multiply instead of overwriting Temp_Ones
-        ; Multiply by 10: (x<<3) + (x<<1)
+        ; Multiply by 10 using shifts: (x<<3) + (x<<1)
         bcf     STATUS, STATUS_C_POSITION
         rlf     DesiredTemp_INT, F      ; ×2
         BANKSEL Temp_Multiply
@@ -377,23 +402,23 @@ Key_Hash:
         BANKSEL DesiredTemp_INT
         addwf   DesiredTemp_INT, F
         
-        ; FIX: Validate range 10-50
-        ; Check lower bound (< 10)
+        ; Validate range: 10 <= temp <= 50
+        ; Check lower bound (temp < 10)
         movf    DesiredTemp_INT, W
         sublw   10                      ; 10 - W
         btfss   STATUS, STATUS_C_POSITION
-        goto    Check_Upper             ; W >= 10, OK
+        goto    Check_Upper             ; W >= 10, check upper
         goto    Hash_Invalid            ; W < 10
 
 Check_Upper:
-        ; Check upper bound (> 50)
+        ; Check upper bound (temp > 50)
         BANKSEL DesiredTemp_INT
         movf    DesiredTemp_INT, W
         sublw   50                      ; 50 - W
         btfss   STATUS, STATUS_C_POSITION
         goto    Hash_Invalid            ; W > 50
         
-        ; Valid! Save decimal
+        ; Valid temperature! Save decimal part
         BANKSEL Temp_Decimal
         movf    Temp_Decimal, W
         BANKSEL DesiredTemp_FRAC
@@ -401,13 +426,14 @@ Check_Upper:
         goto    Hash_Reset
 
 Hash_Invalid:
-        ; Reset to 20.0°C
+        ; Invalid range - reset to 20.0°C
         BANKSEL DesiredTemp_INT
         movlw   20
         movwf   DesiredTemp_INT
         clrf    DesiredTemp_FRAC
 
 Hash_Reset:
+        ; Clear input state
         BANKSEL Keypad_Digit_Count
         clrf    Keypad_Digit_Count
         BANKSEL Temp_Tens
@@ -416,6 +442,7 @@ Hash_Reset:
         clrf    Temp_Decimal
 
 Hash_Ignore:
+        ; Restore PORTB
         BANKSEL PORTB
         movlw   0xF0
         movwf   PORTB
