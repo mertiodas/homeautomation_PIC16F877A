@@ -8,6 +8,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 import csv
 from datetime import datetime
+import serial
 
 
 class MainWindowLogic(QMainWindow, Ui_MainWindow):
