@@ -14,8 +14,8 @@
 ; --------------------------------------------------
 INIT_UART:
         BANKSEL TRISC
-        BSF     TRISC, 7    ; RX Giriş
-        BCF     TRISC, 6    ; TX Çıkış
+        BSF     TRISC, 6    ; RX Giriş
+        BCF     TRISC, 7    ; TX Çıkış
         BANKSEL TXSTA
         MOVLW   0x24        ; BRGH=1, TXEN=1
         MOVWF   TXSTA
