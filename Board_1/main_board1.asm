@@ -28,6 +28,8 @@ FanSpeed_RPS:          DS 1
 Timer1_Overflow_Count: DS 1
 Display_Data_Select:   DS 1
 Display_Timer_2sec:    DS 1
+UART_RX_Byte: DS 1
+UART_Flag:    DS 1
 
 W_TEMP:                DS 1
 STATUS_TEMP:           DS 1
