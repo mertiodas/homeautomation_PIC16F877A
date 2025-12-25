@@ -1,5 +1,5 @@
 ; ===========================================================================
-; UART MODULE FOR BOARD 2 - UPDATED FOR BMP180 VARIABLE NAMES
+; UART MODULE FOR BOARD 2 -
 ; Handled Commands: 0x01 to 0x08 (GET) and 0x80+ (SET)
 ; ===========================================================================
 
@@ -8,6 +8,7 @@ UART_PROCESS_B2:
     btfss PIR1, 5           ; Check RCIF (Data in RCREG?)
     return                  ; If no data, exit
 
+    banksel RCREG
     movf RCREG, W           ; Load received byte
     banksel RX_TEMP
     movwf RX_TEMP           ; Store in temporary variable
@@ -83,29 +84,64 @@ B2_SET_LOGIC:
     goto B2_DO_SET_INT
     return
 
-    ; --- EXECUTION SUBROUTINES (MAPPED TO YOUR VARIABLES) ---
+    ; --- EXECUTION SUBROUTINES (CORRECTED SYNTAX & BANKSEL) ---
 
-B2_SEND_CURT_FRAC: movf Curtain_FRAC, W  | goto B2_TX
-B2_SEND_CURT_INT:  movf Curtain_INT, W   | goto B2_TX
-B2_SEND_OT_FRAC:   movf BMP_Temp_L, W    | goto B2_TX ; Mapped to BMP180 Temp Low
-B2_SEND_OT_INT:    movf BMP_Temp_H, W    | goto B2_TX ; Mapped to BMP180 Temp High
-B2_SEND_PR_FRAC:   movf BMP_Press_L, W   | goto B2_TX ; Mapped to BMP180 Press Low
-B2_SEND_PR_INT:    movf BMP_Press_H, W   | goto B2_TX ; Mapped to BMP180 Press High
-B2_SEND_LI_FRAC:   movf Light_FRAC, W    | goto B2_TX
-B2_SEND_LI_INT:    movf Light_INT, W     | goto B2_TX
+B2_SEND_CURT_FRAC:
+    banksel Curtain_FRAC
+    movf Curtain_FRAC, W
+    goto B2_TX
 
+B2_SEND_CURT_INT:
+    banksel Curtain_INT
+    movf Curtain_INT, W
+    goto B2_TX
+
+B2_SEND_OT_FRAC:
+    banksel BMP_Temp_L
+    movf BMP_Temp_L, W      ; Mapped to BMP180 Temp Low
+    goto B2_TX
+
+B2_SEND_OT_INT:
+    banksel BMP_Temp_H
+    movf BMP_Temp_H, W      ; Mapped to BMP180 Temp High
+    goto B2_TX
+
+B2_SEND_PR_FRAC:
+    banksel BMP_Press_L
+    movf BMP_Press_L, W     ; Mapped to BMP180 Press Low
+    goto B2_TX
+
+B2_SEND_PR_INT:
+    banksel BMP_Press_H
+    movf BMP_Press_H, W     ; Mapped to BMP180 Press High
+    goto B2_TX
+
+B2_SEND_LI_FRAC:
+    banksel Light_FRAC
+    movf Light_FRAC, W
+    goto B2_TX
+
+B2_SEND_LI_INT:
+    banksel Light_INT
+    movf Light_INT, W
+    goto B2_TX
+
+    ; --- TRANSMIT SUBROUTINE ---
 B2_TX:
     banksel TXREG
     movwf TXREG
     banksel TXSTA
-    btfss TXSTA, 1          ; Wait for TRMT (bit 1)
-    goto $-1
+WAIT_TX:
+    btfss TXSTA, 1          ; Wait for TRMT (bit 1) to be empty
+    goto WAIT_TX
     return
 
+    ; --- SET ACTION SUBROUTINES ---
 B2_DO_SET_FRAC:
     banksel RX_TEMP
     movf RX_TEMP, W
     andlw 00111111B
+    banksel Curtain_FRAC
     movwf Curtain_FRAC
     return
 
@@ -113,5 +149,6 @@ B2_DO_SET_INT:
     banksel RX_TEMP
     movf RX_TEMP, W
     andlw 00111111B
+    banksel Curtain_INT
     movwf Curtain_INT
     return
