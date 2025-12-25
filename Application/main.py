@@ -5,28 +5,48 @@ from gui import Ui_MainWindow
 from AC import AirConditionerSystemConnection
 from curtain import CurtainControlSystemConnection
 import warnings
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 import csv
 from datetime import datetime
-import serial
 
 
 class MainWindowLogic(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.api_ac = AirConditionerSystemConnection(port=5, ui = self)
-        self.api_curtain = CurtainControlSystemConnection(port=6, ui = self)
-        self.acApply.clicked.connect(self.api_ac.setDesiredTemp)
-        self.curtainApply.clicked.connect(self.api_curtain.setCurtainStatus)
+
+        # Initialize with None first so the attribute exists
+        self.api_ac = None
+        self.api_curtain = None
+
+        try:
+            self.api_ac = AirConditionerSystemConnection(port=5, ui=self)
+            self.api_curtain = CurtainControlSystemConnection(port=6, ui=self)
+        except Exception as e:
+            print(f"Connection Initialization Warning: {e}")
+
+        # Only connect buttons if the API objects were created successfully
+        if self.api_ac:
+            self.acApply.clicked.connect(self.api_ac.setDesiredTemp)
+
+        if self.api_curtain:
+            self.curtainApply.clicked.connect(self.api_curtain.setCurtainStatus)
+
         self.update.clicked.connect(self.handle_global_update)
         self.actionSave.triggered.connect(self.handle_save)
+
+        # 3. BACKGROUND TIMER (Crucial for the report demo!)
+        # This refreshes the GUI every 2 seconds without you having to click 'Update'
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.handle_global_update)
+        self.refresh_timer.start(2000)
+
+        self.statusBar().showMessage("System Initialized in Simulation Mode", 3000)
 
     def handle_save(self):
         """Saves current sensor and system data to a CSV file."""
         try:
-            # 1. Prepare the data row
-            # We fetch the latest values directly from our API objects
             data_row = {
                 "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "Ambient_Temp": self.api_ac.getAmbientTemp(),
@@ -35,75 +55,48 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
                 "Outdoor_Temp": self.api_curtain.getOutdoorTemp(),
                 "Pressure": self.api_curtain.getOutdoorPress(),
                 "Light": self.api_curtain.getLightIntensity(),
-                "Curtain_Status": self.api_curtain._curtainStatus  # Accessing the internal var
+                "Curtain_Status": self.api_curtain._curtainStatus
             }
 
-            # 2. Define filename
             filename = "automation_data.csv"
 
-            # 3. Write to file (Append mode 'a' so we don't delete old data)
-            file_exists = False
-            try:
-                with open(filename, 'r') as f:
-                    file_exists = True
-            except FileNotFoundError:
-                file_exists = False
+            # Simplified file check
+            import os
+            file_exists = os.path.isfile(filename)
 
             with open(filename, mode='a', newline='') as file:
                 writer = csv.DictWriter(file, fieldnames=data_row.keys())
-
-                # Write header only if file is new
                 if not file_exists:
                     writer.writeheader()
-
                 writer.writerow(data_row)
 
-            self.statusBar().showMessage(f"Data saved to {filename}", 3000)
-            print(f"Successfully saved data at {data_row['Timestamp']}")
+            self.statusBar().showMessage(f"Data saved to {filename}", 2000)
+            print(f"Log updated at {data_row['Timestamp']}")
 
         except Exception as e:
-            self.statusBar().showMessage(f"Save Failed: {e}", 4000)
             print(f"Save Error: {e}")
+
     def handle_global_update(self):
-        """
-        Refreshes data from both boards.
-        Triggers dynamic GUI updates for ports, baudrates, and sensor values.
-        """
+        """Refreshes data from both boards safely."""
         print("--- Master Update Triggered ---")
-        ac_success = False
-        curtain_success = False
 
-        # 1. Update Air Conditioner (Board 1 - COM5)
-        try:
-            # This now updates acPort, acBaudrate, ambientTemp, and fanSpeed
-            self.api_ac.update()
-            ac_success = True
-            print("AC System: Update Successful")
-        except Exception as e:
-            print(f"AC Update Error: {e}")
-            # This will catch if acPort or acBaudrate objects are missing in GUI
-            self.statusBar().showMessage(f"AC Board Error: {str(e)}", 3000)
-
-        # 2. Update Curtain & Environment (Board 2 - COM6)
-        try:
-            # This now updates curtainPort, curtainBaudrate, outdoorTemp, pressure, and light
-            self.api_curtain.update()
-            curtain_success = True
-            print("Curtain System: Update Successful")
-        except Exception as e:
-            print(f"Curtain Update Error: {e}")
-            self.statusBar().showMessage(f"Curtain Board Error: {str(e)}", 3000)
-
-        # 3. Final Multi-Status Feedback
-        if ac_success and curtain_success:
-            self.statusBar().showMessage("All systems updated successfully.", 4000)
-        elif ac_success:
-            self.statusBar().showMessage("AC Updated, but Curtain Board failed.", 4000)
-        elif curtain_success:
-            self.statusBar().showMessage("Curtain Updated, but AC Board failed.", 4000)
+        # 1. Update AC Board (Check if it exists first)
+        if self.api_ac is not None:
+            try:
+                self.api_ac.update()
+            except Exception as e:
+                print(f"AC Sync Error: {e}")
         else:
-            self.statusBar().showMessage("Critical: All communication lines down!", 5000)
+            print("AC API not initialized - Skipping update")
 
+        # 2. Update Curtain Board (Check if it exists first)
+        if self.api_curtain is not None:
+            try:
+                self.api_curtain.update()
+            except Exception as e:
+                print(f"Curtain Sync Error: {e}")
+        else:
+            print("Curtain API not initialized - Skipping update")
 
 
 # --- Application Entry Point ---
