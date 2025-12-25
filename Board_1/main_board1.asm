@@ -95,8 +95,8 @@ MAIN_LOOP:
 ; ==================================================
 ; TEST BLOCK (COMMENTED ? FOR REPORT)
 ; ==================================================
-; Ambient = 15.0 °C
-; Desired = 25.0 °C
+; Ambient = 15.0 ï¿½C
+; Desired = 25.0 ï¿½C
 ; Expected: FAN ON, HEATER OFF
 ;
        movlw   15
@@ -115,6 +115,7 @@ MAIN_LOOP:
         ;call Read_Fan_Speed
         ;call Temperature_Control_Logic
         ;call Display_Multiplex_Routine
+        ;call UART_Process
 
         goto MAIN_LOOP
 

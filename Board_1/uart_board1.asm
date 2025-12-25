@@ -47,42 +47,38 @@ UART_RX_ISR:
 UART_Process:
         BANKSEL UART_Flag
         MOVF    UART_Flag, W
-        BTFSC   STATUS, 2   ; Veri yoksa dön
-        RETURN
-        CLRF    UART_Flag
+        BTFSC   STATUS, 2
+        RETURN              ; If 0, no data received
+        CLRF    UART_Flag   ; Reset flag
 
         BANKSEL UART_RX_Byte
         MOVF    UART_RX_Byte, W
 
-        ; --- Python Komutları ---
-        XORLW   'G'         ; Python "Veri gönder" dedi mi?
-        BTFSC   STATUS, 2
-        GOTO    SEND_TELEMETRY
-
-        MOVF    UART_RX_Byte, W
-        XORLW   'D'         ; Python "Yeni hedef sıcaklık" dedi mi?
-        BTFSC   STATUS, 2
+        ; --- STEP 1: Check for SET Commands (Bit 7 is 1) ---
+        ; Matches 10xxxxxx (Frac) or 11xxxxxx (Int)
+        BTFSC   UART_RX_Byte, 7
         GOTO    RECEIVE_DESIRED_TEMP
 
-        ; --- Manuel Kontrol Komutları ---
-        MOVF    UART_RX_Byte, W
-        XORLW   'H'         ; Heater ON
-        BTFSC   STATUS, 2
-        GOTO    UART_HEATER
+        ; --- STEP 2: Check for GET Commands (Binary) ---
+        ; We check W against the specific codes in the table
 
         MOVF    UART_RX_Byte, W
-        XORLW   'C'         ; Cooler ON
+        XORLW   0x03        ; Python asks for Ambient Low (Fractional)
         BTFSC   STATUS, 2
-        GOTO    UART_COOLER
+        GOTO    SEND_AMB_FRAC
 
         MOVF    UART_RX_Byte, W
-        XORLW   'O'         ; All OFF
+        XORLW   0x04        ; Python asks for Ambient High (Integral)
         BTFSC   STATUS, 2
-        GOTO    UART_OFF
+        GOTO    SEND_AMB_INT
 
-        RETURN
+        MOVF    UART_RX_Byte, W
+        XORLW   0x05        ; Get Fan Speed (RPS)?
+        BTFSC   STATUS, 2
+        GOTO    SEND_FAN_SPEED
 
-; --- ALT PROGRAMLAR ---
+        RETURN              ; Unknown command, just exit
+
 
 UART_HEATER:
         BANKSEL PORTE
@@ -102,45 +98,69 @@ UART_OFF:
         BCF     PORTE, 1    ; RE1 OFF
         RETURN
 
-SEND_TELEMETRY:
-        ; Python'a "Axx\n" gönder (Ambient)
-        MOVLW   'A'
-        CALL    UART_Send_Char
-        BANKSEL AmbientTemp_INT
-        MOVF    AmbientTemp_INT, W
-        CALL    UART_Send_Value_As_String
-        MOVLW   0x0A ; \n
-        CALL    UART_Send_Char
-
-        ; Python'a "Fxxx\n" gönder (Fan)
-        MOVLW   'F'
-        CALL    UART_Send_Char
-        BANKSEL FanSpeed_RPS
-        MOVF    FanSpeed_RPS, W
-        CALL    UART_Send_Value_As_String
-        MOVLW   0x0A ; \n
+SEND_DES_LOW:
+        BANKSEL DesiredTemp_FRAC    ; Changed from _Low to match your SET logic
+        MOVF    DesiredTemp_FRAC, W
         CALL    UART_Send_Char
         RETURN
 
+SEND_DES_HIGH:
+        BANKSEL DesiredTemp_INT     ; Changed from _High to match your SET logic
+        MOVF    DesiredTemp_INT, W
+        CALL    UART_Send_Char
+        RETURN
+
+SEND_AMB_INT:
+        BANKSEL AmbientTemp_INT
+        MOVF    AmbientTemp_INT, W
+        CALL    UART_Send_Char
+        RETURN
+
+SEND_AMB_FRAC:
+        BANKSEL AmbientTemp_FRAC
+        MOVF    AmbientTemp_FRAC, W
+        CALL    UART_Send_Char
+        RETURN
+
+SEND_FAN_SPEED:
+        BANKSEL FanSpeed_RPS
+        MOVF    FanSpeed_RPS, W
+        CALL    UART_Send_Char
+        RETURN
+
+; --- SET FUNCTIONS (Receiving from Python) ---
+
 RECEIVE_DESIRED_TEMP:
-        ; Burada Python'dan gelen Dxx formatındaki xx kısmını
-        ; yakalamak için ekstra mantık gerekir, şimdilik boş geçiyoruz.
+        ; Note: UART_RX_Byte should be in W before calling this or
+        ; you can MOVF UART_RX_Byte, W here to be safe.
+        BTFSC   UART_RX_Byte, 6
+        GOTO    SET_INT_VAL     ; If bits are 11xxxxxx
+        GOTO    SET_FRAC_VAL    ; If bits are 10xxxxxx
+
+SET_INT_VAL:
+        MOVF    UART_RX_Byte, W
+        ANDLW   0x3F            ; Mask bits 7 & 6, keep the 6-bit value
+        BANKSEL DesiredTemp_INT
+        MOVWF   DesiredTemp_INT
+        RETURN
+
+SET_FRAC_VAL:
+        MOVF    UART_RX_Byte, W
+        ANDLW   0x3F            ; Mask bits 7 & 6, keep the 6-bit value
+        BANKSEL DesiredTemp_FRAC
+        MOVWF   DesiredTemp_FRAC
         RETURN
 
 ; --- YARDIMCI TX FONKSİYONLARI ---
 
 UART_Send_Char:
-        BANKSEL TXSTA
+        BANKSEL TXSTA       ; Go to Bank 1
 WAIT_TX:
-        BTFSS   TXSTA, 1    ; TRMT biti kontrolü
+        BTFSS   TXSTA, 1    ; Check TRMT bit (TSR empty?)
         GOTO    WAIT_TX
-        BANKSEL TXREG
-        MOVWF   TXREG
+        BANKSEL TXREG       ; Go to Bank 0
+        MOVWF   TXREG       ; Load the byte from W into TXREG
         RETURN
-
-UART_Send_Value_As_String:
-        MOVWF   0x70        ; W'yi geçici adrese al
-        CLRF    0x71        ; Onlar hanesi sayacı
 DIV_LOOP:
         MOVLW   10
         SUBWF   0x70, W     ; W = Değer - 10
