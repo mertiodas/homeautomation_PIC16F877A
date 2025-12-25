@@ -9,10 +9,15 @@
 CONFIG  FOSC=XT, WDTE=OFF, PWRTE=ON, BOREN=OFF, LVP=OFF, CPD=OFF, WRT=OFF, CP=OFF
 
     PSECT udata_bank0
-BMP_Temp_H:     DS 1
-BMP_Temp_L:     DS 1
-BMP_Press_H:    DS 1
-BMP_Press_L:    DS 1
+BMP_Temp_H:     DS 1    ; Outdoor Temp High Byte (Integral)
+BMP_Temp_L:     DS 1    ; Outdoor Temp Low Byte (Fractional)
+BMP_Press_H:    DS 1    ; Outdoor Pressure High Byte (Integral)
+BMP_Press_L:    DS 1    ; Outdoor Pressure Low Byte (Fractional)
+RX_TEMP:        DS 1    ; Temporary storage for incoming UART commands
+Curtain_INT:    DS 1    ; Target Curtain Position (Integer)
+Curtain_FRAC:   DS 1    ; Target Curtain Position (Fractional)
+Light_INT:      DS 1    ; Light Intensity (Integer)
+Light_FRAC:     DS 1    ; Light Intensity (Fractional)
 LCD_STATE:      DS 1
 LCD_TEMP:       DS 1
 LCD_PRESS:      DS 1
