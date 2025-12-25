@@ -46,12 +46,12 @@ ISR_End:
 
     PSECT code
 MAIN:
-    BANKSEL TRISC
-    movlw   0b00011000
+    banksel TRISC
+    movlw   10011000B   ; Bit 7 (RX)=1, Bits 4&3 (I2C)=1
     movwf   TRISC
-    BANKSEL TRISD
+    banksel TRISD
     clrf    TRISD
-    BANKSEL TRISB
+    banksel TRISB
     bcf     TRISB, 4
     bcf     TRISB, 5
     
