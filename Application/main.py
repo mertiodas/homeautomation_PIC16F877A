@@ -40,7 +40,7 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
         # This refreshes the GUI every 2 seconds without you having to click 'Update'
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.handle_global_update)
-        self.refresh_timer.start(2000)
+        self.refresh_timer.start(10000)
 
         self.statusBar().showMessage("System Initialized in Simulation Mode", 3000)
 
