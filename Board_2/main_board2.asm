@@ -76,6 +76,7 @@ MAIN_LOOP:
 
 #include "bmp180_i2c.asm"
 #include "lcd_control.asm"
+#include "uart_board2.asm"
 
 END
 
