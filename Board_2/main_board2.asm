@@ -67,6 +67,7 @@ MAIN_LOOP:
     call BMP180_Read_Temp
     call BMP180_Read_Press
     call LCD_Init
+    call UART_PROCESS_B2
     movlw 'T'
     call LCD_WriteChar
     movlw ':'
