@@ -27,6 +27,9 @@ LCD_TMP:        DS 1
 W_TEMP:         DS 1
 STATUS_TEMP:    DS 1
 PCLATH_TEMP:    DS 1
+UART_RX_Byte:  DS 1    ; Byte received from UART ISR
+UART_Flag:     DS 1    ; UART RX flag (1 = new data)
+
 
     PSECT resetVec, class=CODE, delta=2
     ORG 0x00
@@ -67,6 +70,8 @@ MAIN:
 
     call INIT_I2C
     call LCD_Init
+    call UART_Init
+
 
 MAIN_LOOP:
     call BMP180_Read_Temp
