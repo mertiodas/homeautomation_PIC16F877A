@@ -48,36 +48,44 @@ UART_Process:
         BANKSEL UART_Flag
         MOVF    UART_Flag, W
         BTFSC   STATUS, 2
-        RETURN              ; If 0, no data received
-        CLRF    UART_Flag   ; Reset flag
+        RETURN
+        CLRF    UART_Flag
 
-        BANKSEL UART_RX_Byte
-        MOVF    UART_RX_Byte, W
-
-        ; --- STEP 1: Check for SET Commands (Bit 7 is 1) ---
-        ; Matches 10xxxxxx (Frac) or 11xxxxxx (Int)
+        ; SET commands
         BTFSC   UART_RX_Byte, 7
         GOTO    RECEIVE_DESIRED_TEMP
 
-        ; --- STEP 2: Check for GET Commands (Binary) ---
-        ; We check W against the specific codes in the table
-
+        ; GET desired temp low
         MOVF    UART_RX_Byte, W
-        XORLW   0x03        ; Python asks for Ambient Low (Fractional)
+        XORLW   0x01
+        BTFSC   STATUS, 2
+        GOTO    SEND_DES_LOW
+
+        ; GET desired temp high
+        MOVF    UART_RX_Byte, W
+        XORLW   0x02
+        BTFSC   STATUS, 2
+        GOTO    SEND_DES_HIGH
+
+        ; GET ambient temp low
+        MOVF    UART_RX_Byte, W
+        XORLW   0x03
         BTFSC   STATUS, 2
         GOTO    SEND_AMB_FRAC
 
+        ; GET ambient temp high
         MOVF    UART_RX_Byte, W
-        XORLW   0x04        ; Python asks for Ambient High (Integral)
+        XORLW   0x04
         BTFSC   STATUS, 2
         GOTO    SEND_AMB_INT
 
+        ; GET fan speed
         MOVF    UART_RX_Byte, W
-        XORLW   0x05        ; Get Fan Speed (RPS)?
+        XORLW   0x05
         BTFSC   STATUS, 2
         GOTO    SEND_FAN_SPEED
 
-        RETURN              ; Unknown command, just exit
+        RETURN
 
 
 UART_HEATER:
