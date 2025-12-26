@@ -31,10 +31,6 @@ UART_RX_Byte:  DS 1    ; Byte received from UART ISR
 UART_Flag:     DS 1    ; UART RX flag (1 = new data)
 
 
-    PSECT resetVec, class=CODE, delta=2
-    ORG 0x00
-    goto MAIN
-
     PSECT intVec, class=CODE, delta=2
     ORG 0x04
 ISR:
@@ -43,6 +39,11 @@ ISR:
     movwf   STATUS_TEMP
     movf    PCLATH, W
     movwf   PCLATH_TEMP
+
+    ; ---- UART RX INTERRUPT ----
+    btfsc   PIR1, RCIF
+    call    UART_RX_ISR
+
 ISR_End:
     movf    PCLATH_TEMP, W
     movwf   PCLATH
@@ -76,7 +77,7 @@ MAIN:
 MAIN_LOOP:
     call BMP180_Read_Temp
     call BMP180_Read_Press
-    call LCD_Init
+
     call UART_PROCESS_B2
     movlw 'T'
     call LCD_WriteChar
