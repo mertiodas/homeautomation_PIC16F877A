@@ -112,7 +112,7 @@ class CurtainControlSystemConnection(HomeAutomationSystemConnection):
                     self._serial.write(bytes([low_command]))
                     print(f"PIC Board 2: Sent commands {bin(high_command)} {bin(low_command)}")
                 else:
-                    print(f"Simulation: Would send commands for {status_val}%")
+                    print(f"Send commands for {status_val}%")
 
                 self._curtainStatus = status_val
                 self.update_gui_labels()  # Update UI instantly

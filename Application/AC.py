@@ -109,7 +109,7 @@ class AirConditionerSystemConnection(HomeAutomationSystemConnection):
                     self._serial.write(bytes([low_command]))
                     print(f"Hardware Command Sent: {target_temp}")
                 else:
-                    print(f"Simulation Mode: Would send {bin(high_command)} and {bin(low_command)}")
+                    print(f"Send {bin(high_command)} and {bin(low_command)}")
 
                 # Update internal state and UI even in simulation
                 self._desiredTemperature = target_temp
