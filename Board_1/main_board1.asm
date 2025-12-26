@@ -128,22 +128,22 @@ MAIN_LOOP:
 init_ports_and_config:
 
         BANKSEL TRISA
-        movlw   0x01            ; RA0 analog input (LM35)
+        movlw   0x01
         movwf   TRISA
 
         BANKSEL TRISB
-        movlw   0x0F            ; RB0?RB3 keypad
+        movlw   0x0F
         movwf   TRISB
 
         BANKSEL TRISC
-        movlw   0x81            ; UART RX/TX
+        movlw   0x80        ; RC7 RX (IN), RC6 TX (OUT)
         movwf   TRISC
 
         BANKSEL TRISD
-        clrf    TRISD           ; Display
+        clrf    TRISD
 
         BANKSEL TRISE
-        clrf    TRISE           ; RE0 Heater, RE1 Fan
+        clrf    TRISE
 
         BANKSEL ADCON1
         movlw   0x8E
@@ -160,7 +160,6 @@ init_ports_and_config:
         BANKSEL PORTE
         clrf PORTE
 
-        ; INTERRUPTS
         bcf INTCON, INTCON_GIE_POSITION
         bsf INTCON, INTCON_PEIE_POSITION
         bsf INTCON, INTCON_RBIE_POSITION
