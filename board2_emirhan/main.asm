@@ -1,0 +1,121 @@
+; ============================================
+; main.asm - Board 2 (Curtain Control) - FULL VERSION
+; PIC16F877A @ 4MHz
+; ============================================
+
+    PROCESSOR   16F877A
+    #include    <xc.inc>
+    
+; ============================================
+; VARIABLES (BANK 0)
+; ============================================
+    PSECT   udata_bank0
+    
+    ; --- System Variables ---
+    CURTAIN_STATUS:       ds 1
+    DES_CURTAIN_STATUS:   ds 1
+    DES_CURTAIN_STATUS_L: ds 1
+    
+    ; --- Sensors ---
+    LIGHT_INTENSITY_H:    ds 1
+    LIGHT_INTENSITY_L:    ds 1
+    POT_H:		  ds 1
+    POT_L:		  ds 1
+    LDR_FLAG:		  ds 1
+    LDR_FLAG2:		  ds 1
+    OUTDOOR_TEMP_H:       ds 1
+    OUTDOOR_TEMP_L:       ds 1
+    OUTDOOR_PRESS_H:      ds 1
+    OUTDOOR_PRESS_L:      ds 1
+    
+    ; --- Temporary ---
+    TEMP:		  ds 1
+    TEMP_WORK:            ds 1
+    TEMP_WORK2:           ds 1
+    UART_RX_BYTE:         ds 1
+    UART_TX_BYTE:         ds 1
+
+    ; --- Stepper Motor ---
+    STEP_INDEX:           ds 1
+    STEP_TARGET:          ds 1
+    STEP_CURRENT:         ds 1
+    STEP_DELAY_OUT:	  ds 1
+    STEP_DELAY_IN:	  ds 1
+
+; ============================================
+; RESET VECTOR
+; ============================================
+    PSECT   resetVector,class=CODE,delta=2
+    ORG     0x0000
+    GOTO    INIT
+
+; ============================================
+; MAIN PROGRAM
+; ============================================
+    PSECT   code,class=CODE,delta=2
+
+INIT:
+    ; --- Bank 1: TRIS & ADCON1 ---
+    BANKSEL TRISA
+    
+    ; TRISA: RA0(LDR), RA2(Pot) Input
+    MOVLW   0b00000101
+    MOVWF   TRISA
+
+    ; TRISB: RB0-3 Output (Motor)
+    MOVLW   0b00000000
+    MOVWF   TRISB
+
+    ; TRISC: RC3/4(I2C), RC6/7(UART)
+    MOVLW   0b11011000
+    MOVWF   TRISC
+
+    ; TRISD: RD0(LDR Digital) In, RD4-7(LCD) Out
+    MOVLW   0b00000001
+    MOVWF   TRISD
+
+    ; TRISE: LCD Control Out
+    MOVLW   0x00
+    MOVWF   TRISE
+    
+    ; --- Bank 0 ---
+    BANKSEL PORTA
+    
+    ; Clear Variables
+    CLRF    PORTA
+    CLRF    PORTB
+    CLRF    PORTC
+    CLRF    PORTD
+    CLRF    PORTE
+    
+    CLRF    CURTAIN_STATUS
+    CLRF    DES_CURTAIN_STATUS
+    CLRF    STEP_INDEX
+
+    ; --- Init Modules ---
+    ;CALL    UART_INIT
+    CALL    ADC_INIT
+    CALL    STEPPER_INIT
+    CALL    LCD_INIT
+    ;CALL    I2C_INIT
+    ;CALL    BMP180_INIT  ; (Iste?e ba?l?, LCD test edildikten sonra aç)
+
+MAIN_LOOP:
+    ;CALL    UART_SERVICE
+    CALL    READ_LIGHT_SENSOR
+    BTFSC   LDR_FLAG, 0
+    CALL    READ_POT_SENSOR
+    BSF	    LDR_FLAG, 0
+    CALL    CURTAIN_LOGIC 
+    CALL    UPDATE_LCD
+
+    GOTO    MAIN_LOOP
+
+    #include    "config.inc"
+    #include	"adc.asm"
+    #include	"stepper.asm"
+    #include	"lcd.asm"                
+    #include	"i2c.asm"
+    #include	"bmp180.asm"
+    #include	"uart.asm"
+    END
