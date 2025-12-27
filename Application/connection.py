@@ -11,7 +11,13 @@ class HomeAutomationSystemConnection:
         # 1. Start with _serial as None.
         # Do NOT open the port in __init__ to prevent GUI freezing.
         self._serial = None
-
+        """
+        self._serial = serial.Serial(
+            port=f"COM{self._comPort}",
+            baudrate=self._baudRate,
+            timeout=0.1  # <--- THIS MUST BE HERE
+        #)
+        """
         # 2. Initial GUI Sync (fills labels with COMx and baudrate)
         self.update()
 
