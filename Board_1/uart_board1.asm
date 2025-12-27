@@ -13,21 +13,31 @@
 ; INIT UART (9600 baud @ 4MHz)
 ; --------------------------------------------------
 INIT_UART:
-        BANKSEL TRISC
-        BCF     TRISC, 6    ; RC6 = TX -> output
-        BSF     TRISC, 7    ; RC7 = RX -> input
-        BANKSEL TXSTA
-        MOVLW   0x24        ; BRGH=1, TXEN=1
-        MOVWF   TXSTA
-        BANKSEL RCSTA
-        MOVLW   0x90        ; SPEN=1, CREN=1
-        MOVWF   RCSTA
-        BANKSEL SPBRG
-        MOVLW   25          ; 9600 Baud
-        MOVWF   SPBRG
-        BANKSEL PIE1
-        BSF     PIE1, 5     ; RCIE aktif
-        RETURN
+    ; --- Step 1: Set Pins (Bank 1) ---
+    BANKSEL TRISC
+    BCF     TRISC, 6    ; TX Output
+    BSF     TRISC, 7    ; RX Input
+
+    ; --- Step 2: Set Baud Rate (Bank 1) ---
+    BANKSEL SPBRG
+    MOVLW   25          ; 9600 Baud @ 4MHz
+    MOVWF   SPBRG
+
+    ; --- Step 3: Set TX Status (Bank 1) ---
+    MOVLW   0x24        ; TXEN=1, BRGH=1
+    MOVWF   TXSTA
+
+    ; --- Step 4: Set RX Status (Bank 0) ---
+    BANKSEL RCSTA
+    MOVLW   0x90        ; SPEN=1, CREN=1
+    MOVWF   RCSTA
+
+    ; --- Step 5: Enable Interrupts (Bank 1) ---
+    BANKSEL PIE1
+    BSF     PIE1, RCIE  ; Enable Receive Interrupt
+
+    BANKSEL 0           ; Always return to Bank 0
+    RETURN
 
 ; --------------------------------------------------
 ; UART RX ISR
