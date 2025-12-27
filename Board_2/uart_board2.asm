@@ -19,7 +19,7 @@ UART_Init:
     movwf   RCSTA
 
     banksel PIE1
-    bsf     PIE1, RCIE     ; Enable RX Interrupt
+    bsf     PIE1, 5        ; 5 is the bit position for RCIE in PIE1
     return
 
 ; ===============================
@@ -28,7 +28,7 @@ UART_Init:
 UART_Send:
     banksel PIR1
 WAIT_TX:
-    btfss   PIR1, TXIF     ; Wait for TX buffer to be empty
+    btfss   PIR1, 4        ; 4 is the bit position for TXIF in PIR1
     goto    WAIT_TX
     banksel TXREG
     movwf   TXREG          ; Send W
@@ -37,46 +37,52 @@ WAIT_TX:
 ; ===============================
 ; UART PROCESS (BOARD 2)
 ; ===============================
+; ===============================
+; UART PROCESS (BOARD 2)
+; ===============================
 UART_PROCESS_B2:
     banksel PIR1
-    btfss   PIR1, RCIF     ; Data arrived?
+    btfss   PIR1, 5        ; Use '5' instead of RCIF if it's giving errors
     return
 
     banksel RCSTA
-    btfsc   RCSTA, OERR    ; Overrun Error check
+    btfsc   RCSTA, 1       ; Use '1' instead of OERR
     goto    ERR_RESET_B2
 
     banksel RCREG
-    movf    RCREG, W       ; Read byte
+    movf    RCREG, W       ; Read received byte
     banksel RX_TEMP
     movwf   RX_TEMP
 
-    btfsc   RX_TEMP, 7     ; Bit7=1 -> SET, Bit7=0 -> GET
+    ; Check Bit 7 (SET vs GET)
+    btfsc   RX_TEMP, 7     
     goto    B2_SET_CMD
     goto    B2_GET_CMD
 
 ERR_RESET_B2:
-    bcf     RCSTA, CREN
-    bsf     RCSTA, CREN
+    banksel RCSTA
+    bcf     RCSTA, 4       ; Use '4' instead of CREN to reset
+    bsf     RCSTA, 4       ; Re-enable CREN
     return
 
 ; ===============================
 ; SET COMMANDS (1-Byte Method)
 ; ===============================
 B2_SET_CMD:
-    btfsc   RX_TEMP, 6     ; Bit6=1 -> INT, Bit6=0 -> FRAC
+    btfsc   RX_TEMP, 6     ; Check Bit 6
     goto    SET_CURTAIN_INT
+    goto    SET_CURTAIN_FRAC
 
 SET_CURTAIN_FRAC:
     movf    RX_TEMP, W
-    andlw   00111111B      ; Keep only the value bits (0-63)
+    andlw   0x3F           ; Same as 00111111B
     banksel Curtain_FRAC
     movwf   Curtain_FRAC
     return
 
 SET_CURTAIN_INT:
     movf    RX_TEMP, W
-    andlw   00111111B      ; Keep only the value bits (0-63)
+    andlw   0x3F           ; Mask out command bits
     banksel Curtain_INT
     movwf   Curtain_INT
     return
