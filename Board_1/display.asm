@@ -3,17 +3,19 @@
 ; AUTHOR: SAFIULLAH SEDIQI 152120211031
 ; 7-Segment Display - Multiplexed 4 Digit
 ; Shows: Desired Temp, Ambient Temp, Fan Speed (2 sec intervals)
+; Corrected for pins:
+; Segments: RD0-RD7, Digit selects: RC1-RC4
 ; ======================================================
 
 ; --- Local RAM (BANK3) ---
         PSECT udata_bank3
-Digit1:         DS 1    ; En soldaki digit
+Digit1:         DS 1
 Digit2:         DS 1
 Digit3:         DS 1
-Digit4:         DS 1    ; En sa?daki digit
-Current_Digit:  DS 1    ; 0-3 aras? hangi digit aktif
-Multiplex_Counter: DS 1 ; Multiplexing h?z sayac?
-Display_Counter_2sec: DS 1 ; 2 saniye sayac?
+Digit4:         DS 1
+Current_Digit:  DS 1
+Multiplex_Counter: DS 1
+Display_Counter_2sec: DS 1
 
 ; --- Code Section ---
         PSECT display_code, class=CODE, delta=2
@@ -34,7 +36,6 @@ Segment_Table:
         retlw   0x6F    ; 9
         retlw   0x80    ; Decimal point (dp)
 
-
 ; --------------------------------------------------
 ; INIT_Display
 ; Initialize display variables and ports
@@ -50,15 +51,13 @@ INIT_Display:
         clrf    Display_Counter_2sec
         
         ; Turn off all digits initially
-        BANKSEL PORTE
-        bcf     PORTE, 2    ; D1 off
-        BANKSEL PORTA
-        bcf     PORTA, 3    ; D2 off
-        bcf     PORTA, 4    ; D3 off
-        bcf     PORTA, 5    ; D4 off
+        BANKSEL PORTC
+        bcf     PORTC, 1
+        bcf     PORTC, 2
+        bcf     PORTC, 3
+        bcf     PORTC, 4
         
         return
-
 
 ; --------------------------------------------------
 ; Display_Multiplex_Routine
@@ -66,39 +65,33 @@ INIT_Display:
 ; Cycles through 4 digits rapidly + handles 2-sec rotation
 ; --------------------------------------------------
 Display_Multiplex_Routine:
-        ; Increment multiplex counter
         BANKSEL Multiplex_Counter
         incf    Multiplex_Counter, F
         movf    Multiplex_Counter, W
-        xorlw   200                     ; ~200 loops = reasonable delay
+        xorlw   200
         btfss   STATUS, STATUS_Z_POSITION
         goto    Multiplex_Show_Digit
         
-        ; Reset counter and switch to next digit
         clrf    Multiplex_Counter
         incf    Current_Digit, F
         movf    Current_Digit, W
         xorlw   4
         btfss   STATUS, STATUS_Z_POSITION
         goto    Multiplex_Show_Digit
-        clrf    Current_Digit           ; Wrap around to digit 0
-        
-        ; Also increment 2-second counter
+        clrf    Current_Digit
+
         incf    Display_Counter_2sec, F
         movf    Display_Counter_2sec, W
-        xorlw   100                     ; Adjust this for ~2 seconds
+        xorlw   100
         btfss   STATUS, STATUS_Z_POSITION
         goto    Multiplex_Show_Digit
-        
-        ; 2 seconds passed - update display data
+
         clrf    Display_Counter_2sec
         call    Update_Display_Data
 
 Multiplex_Show_Digit:
-        ; Show current digit
         call    Select_And_Show_Current_Digit
         return
-
 
 ; --------------------------------------------------
 ; Update_Display_Data
@@ -129,21 +122,19 @@ Check_Mode:
         
         goto    Show_Fan_Speed
 
-; Mode 0: Desired Temperature (XX.X)
 Show_Desired_Temp:
         BANKSEL DesiredTemp_INT
         movf    DesiredTemp_INT, W
-        call    Split_Into_Digits_2     ; Returns tens in W, ones in Digit2
+        call    Split_Into_Digits_2
         movwf   Digit1
         
         movf    DesiredTemp_FRAC, W
         movwf   Digit3
         
-        movlw   10                      ; Blank digit 4
+        movlw   10
         movwf   Digit4
         return
 
-; Mode 1: Ambient Temperature (XX.X)
 Show_Ambient_Temp:
         BANKSEL AmbientTemp_INT
         movf    AmbientTemp_INT, W
@@ -157,32 +148,26 @@ Show_Ambient_Temp:
         movwf   Digit4
         return
 
-; Mode 2: Fan Speed (XXX rps)
 Show_Fan_Speed:
         BANKSEL FanSpeed_RPS
         movf    FanSpeed_RPS, W
-        call    Split_Into_Digits_3     ; Returns hundreds, tens, ones
-        ; W = hundreds, Digit2 = tens, Digit3 = ones
+        call    Split_Into_Digits_3
         movwf   Digit1
         
-        movlw   10                      ; Blank digit 4
+        movlw   10
         movwf   Digit4
         return
 
-
 ; --------------------------------------------------
 ; Split_Into_Digits_2
-; Input: W = 0-99
-; Output: W = tens digit, Digit2 = ones digit
-; --------------------------------------------------
 Split_Into_Digits_2:
-        movwf   Digit2          ; Store original value
-        clrf    Digit1          ; Tens counter
+        movwf   Digit2
+        clrf    Digit1
 Split2_Loop:
         movf    Digit2, W
         sublw   9
         btfsc   STATUS, STATUS_C_POSITION
-        goto    Split2_Done     ; If Digit2 <= 9, done
+        goto    Split2_Done
         
         movlw   10
         subwf   Digit2, F
@@ -190,19 +175,15 @@ Split2_Loop:
         goto    Split2_Loop
 
 Split2_Done:
-        movf    Digit1, W       ; Return tens in W
+        movf    Digit1, W
         return
-
 
 ; --------------------------------------------------
 ; Split_Into_Digits_3
-; Input: W = 0-255
-; Output: W = hundreds, Digit2 = tens, Digit3 = ones
-; --------------------------------------------------
 Split_Into_Digits_3:
-        movwf   Digit3          ; Store original
-        clrf    Digit1          ; Hundreds
-        clrf    Digit2          ; Tens
+        movwf   Digit3
+        clrf    Digit1
+        clrf    Digit2
 
 Split3_Hundreds:
         movf    Digit3, W
@@ -227,24 +208,18 @@ Split3_Tens:
         goto    Split3_Tens
 
 Split3_Done:
-        movf    Digit1, W       ; Return hundreds in W
+        movf    Digit1, W
         return
-
 
 ; --------------------------------------------------
 ; Select_And_Show_Current_Digit
-; Shows the current digit on 7-segment display
-; --------------------------------------------------
 Select_And_Show_Current_Digit:
-        ; Turn off all digits first
-        BANKSEL PORTE
-        bcf     PORTE, 2
-        BANKSEL PORTA
-        bcf     PORTA, 3
-        bcf     PORTA, 4
-        bcf     PORTA, 5
+        BANKSEL PORTC
+        bcf     PORTC, 1
+        bcf     PORTC, 2
+        bcf     PORTC, 3
+        bcf     PORTC, 4
         
-        ; Select which digit to show
         BANKSEL Current_Digit
         movf    Current_Digit, W
         xorlw   0
@@ -268,32 +243,31 @@ Show_D1:
         call    Segment_Table
         BANKSEL PORTD
         movwf   PORTD
-        BANKSEL PORTE
-        bsf     PORTE, 2        ; D1 on (RE2)
+        BANKSEL PORTC
+        bsf     PORTC, 1
         return
 
 Show_D2:
         movf    Digit2, W
         call    Segment_Table
-        ; Add decimal point for temperature displays
         BANKSEL Display_Data_Select
         movf    Display_Data_Select, W
-        xorlw   2               ; If mode != 2 (not fan speed)
+        xorlw   2
         btfsc   STATUS, STATUS_Z_POSITION
         goto    No_DP_D2
         
         BANKSEL PORTD
-        iorlw   0x80            ; Add decimal point
+        iorlw   0x80
         movwf   PORTD
         goto    Enable_D2
-        
+
 No_DP_D2:
         BANKSEL PORTD
         movwf   PORTD
-        
+
 Enable_D2:
-        BANKSEL PORTA
-        bsf     PORTA, 3        ; D2 on (RA3)
+        BANKSEL PORTC
+        bsf     PORTC, 2
         return
 
 Show_D3:
@@ -301,8 +275,8 @@ Show_D3:
         call    Segment_Table
         BANKSEL PORTD
         movwf   PORTD
-        BANKSEL PORTA
-        bsf     PORTA, 4        ; D3 on (RA4)
+        BANKSEL PORTC
+        bsf     PORTC, 3
         return
 
 Show_D4:
@@ -310,6 +284,6 @@ Show_D4:
         call    Segment_Table
         BANKSEL PORTD
         movwf   PORTD
-        BANKSEL PORTA
-        bsf     PORTA, 5        ; D4 on (RA5)
+        BANKSEL PORTC
+        bsf     PORTC, 4
         return
