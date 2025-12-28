@@ -2,7 +2,7 @@
 
 ---
 
-## BOARD #1: AIR CONDITIONER SYSTEM (COM5)
+## BOARD #1: AIR CONDITIONER SYSTEM (COM11)
 **PIC Microcontroller:** PIC16F877A  
 **Goal:** Temperature Control and User Input (Keypad)
 
@@ -15,10 +15,10 @@
 | Keypad               | Rows (L1-L4)         | Digital In   | RB0-RB3            | Keypad Rows                       |
 |                      | Columns (C1-C4)      | Digital Out  | RB4-RB7            | Keypad Columns                    |
 | 7-Segment Display    | Segments (a-g, dp)   | Digital Out  | RD0-RD7            | 8 Segments (DP is RD4)            |
-|                      | Select (D1-D4)       | Digital Out  | RE2, RA3, RA4, RA5 | 4 Digit Selectors                 |
+|                      | Select (D1-D4)       | Digital Out  | RC1, RC2, RC3, RC4 | 4 Digit Selectors                 |
 | UART IO Module       | P2-RX (Receive)      | Serial In    | RC7                | PIC Hardware RX Pin               |
 |                      | P3-TX (Transmit)     | Serial Out   | RC6                | PIC Hardware TX Pin               |
-| UART Config          | Port                 | N/A          | COM5               | Serial Connection to PC           |
+| UART Config          | Port                 | N/A          | COM11               | Serial Connection to PC           |
 
 ---
 
