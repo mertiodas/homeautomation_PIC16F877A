@@ -21,8 +21,8 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
         self.api_curtain = None
 
         try:
-            self.api_ac = AirConditionerSystemConnection(port=6, ui=self)
-            self.api_curtain = CurtainControlSystemConnection(port=10, ui=self)
+            self.api_ac = AirConditionerSystemConnection(port=10, ui=self)
+            self.api_curtain = CurtainControlSystemConnection(port=5, ui=self)
         except Exception as e:
             print(f"Connection Initialization Warning: {e}")
 
@@ -36,8 +36,8 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
         self.update.clicked.connect(self.handle_global_update)
         self.actionSave.triggered.connect(self.handle_save)
 
-        # 3. BACKGROUND TIMER (Crucial for the report demo!)
-        # This refreshes the GUI every 2 seconds without you having to click 'Update'
+
+        # This refreshes the GUI every 2 seconds without having to click 'Update'
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.handle_global_update)
         self.refresh_timer.start(10000)
@@ -99,7 +99,6 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
             print("Curtain API not initialized - Skipping update")
 
 
-# --- Application Entry Point ---
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindowLogic()
