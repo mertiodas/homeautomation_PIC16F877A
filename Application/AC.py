@@ -1,16 +1,17 @@
 from connection import HomeAutomationSystemConnection
-
+import time
 
 class AirConditionerSystemConnection(HomeAutomationSystemConnection):
     def __init__(self, port: int, ui):
         # 1. Initialize variables FIRST
-        self._desiredTemperature: float = 24.0
-        self._ambientTemperature: float = 22.5
+        self._desiredTemperature: float = 0
+        self._ambientTemperature: float = 0
         self._fanSpeed: int = 15
 
         # 2. Call super (which handles port/baudrate)
         super().__init__(port, ui, "ac")
         self.ui = ui
+        self.open()
 
         # 3. NOW update labels
         self.update_gui_labels()
@@ -19,15 +20,20 @@ class AirConditionerSystemConnection(HomeAutomationSystemConnection):
         """Gets ambient temp or returns simulation data if offline."""
         if self._serial and self._serial.is_open:
             try:
-                # 1. Request Integral Part (0x04)
+                # 1. Request Integral Part
                 self._serial.write(bytes([0x04]))
+                time.sleep(0.15)  # <--- GIVE THE PIC A CHANCE TO BREATH
                 high_byte = self._serial.read(1)
 
-                # 2. Request Fractional Part (0x03)
+                # 2. Request Fractional Part
                 self._serial.write(bytes([0x03]))
+                time.sleep(0.15)  # <--- GIVE THE PIC A CHANCE TO BREATH
                 low_byte = self._serial.read(1)
 
                 if high_byte and low_byte:
+                    # THIS LINE PROVES THE PIC IS TALKING
+                    print(f"PIC RESPONSE RECEIVED: Integral={ord(high_byte)}, Frac={ord(low_byte)}")
+
                     integral = ord(high_byte)
                     fractional = ord(low_byte)
                     self._ambientTemperature = integral + (fractional / 100.0)
@@ -76,18 +82,17 @@ class AirConditionerSystemConnection(HomeAutomationSystemConnection):
             self.ui.desiredTemp.setText(f"{desired:.1f} °C")
 
     def update(self):
-        """Master update call triggered by GUI timer or button."""
-        # 1. Update Port/Baudrate labels via Base Class
+        # 1. Update Port/Baudrate labels
         super().update()
 
-        # 2. Push current data to UI labels
-        self.update_gui_labels()
-
+        # 2. Check if we are actually connected
         if self._serial and self._serial.is_open:
+            # ONLY update labels if hardware is there
+            self.update_gui_labels()
             print(f"AC Control Board (COM{self._comPort}) Sync Successful")
         else:
-            # We don't 'return' here so that simulation data still shows up
-            print(f"AC Control Board Simulation: Using mock data for COM{self._comPort}")
+            # Fallback to simulation if hardware fails
+            print(f"AC Control Board Simulation: COM{self._comPort} is NOT active")
 
     def setDesiredTemp(self) -> bool:
         """Parses UI input and sends to hardware IF connected."""

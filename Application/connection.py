@@ -7,24 +7,12 @@ class HomeAutomationSystemConnection:
         self._baudRate = baud_rate
         self.ui = ui
         self.prefix = name_prefix  # "ac" or "curtain"
-
-        # 1. Start with _serial as None.
-        # Do NOT open the port in __init__ to prevent GUI freezing.
         self._serial = None
-        """
-        self._serial = serial.Serial(
-            port=f"COM{self._comPort}",
-            baudrate=self._baudRate,
-            timeout=0.1  # <--- THIS MUST BE HERE
-        #)
-        """
-        # 2. Initial GUI Sync (fills labels with COMx and baudrate)
-        self.update()
 
     def open(self) -> bool:
-        """ Initiates UART connection (8N1). """
+        """ Initiates UART connection (8N1) with port cleanup. """
         try:
-            # Avoid opening if already open
+            # Prevent re-opening if already active
             if self._serial and self._serial.is_open:
                 return True
 
@@ -34,17 +22,28 @@ class HomeAutomationSystemConnection:
                 bytesize=serial.EIGHTBITS,
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
-                timeout=0.1  # Short timeout keeps GUI responsive
+                timeout=0.1,
+                write_timeout=0.1
             )
 
             if self._serial.is_open:
-                print(f"Connected to {self.prefix} on COM{self._comPort}")
+                # Flush buffers to remove startup noise from PICSimLab
+                self._serial.reset_input_buffer()
+                self._serial.reset_output_buffer()
+
+                print(f"Connected: {self.prefix} on COM{self._comPort}")
                 return True
+
             return False
 
+        except serial.SerialException as e:
+            # Specifically handles "Access Denied" if port is in use
+            print(f"Port Error: {self.prefix} cannot access COM{self._comPort} ({e})")
+            self._serial = None
+            return False
         except Exception as e:
-            # In simulation mode, we just print the error and keep self._serial as None
-            print(f"Connection Failed for {self.prefix} on COM{self._comPort}: {e}")
+            # Handles general failures
+            print(f"Simulation Mode: {self.prefix} offline ({e})")
             self._serial = None
             return False
 
