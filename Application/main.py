@@ -22,7 +22,7 @@ class MainWindowLogic(QMainWindow, Ui_MainWindow):
 
         try:
             self.api_ac = AirConditionerSystemConnection(port=10, ui=self)
-            self.api_curtain = CurtainControlSystemConnection(port=5, ui=self)
+            self.api_curtain = CurtainControlSystemConnection(port=12, ui=self)
         except Exception as e:
             print(f"Connection Initialization Warning: {e}")
 
