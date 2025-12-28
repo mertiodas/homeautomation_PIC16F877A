@@ -46,32 +46,32 @@ d2: DS 1
         ORG 0x04
 
 ISR:
-        movwf   W_TEMP
-        swapf   STATUS, W
-        movwf   STATUS_TEMP
+        movwf   W_TEMP              ; save W
+        movf    STATUS, W
+        movwf   STATUS_TEMP         ; save STATUS
         movf    PCLATH, W
-        movwf   PCLATH_TEMP
+        movwf   PCLATH_TEMP         ; save PCLATH
 
-        ; UART RX INTERRUPT
+        ; UART RX
         btfsc   PIR1, PIR1_RCIF_POSITION
         call    UART_RX_ISR
 
-        ; KEYPAD INTERRUPT
+        ; KEYPAD
         btfsc   INTCON, INTCON_RBIF_POSITION
         call    Keypad_Interrupt_Handler
         bcf     INTCON, INTCON_RBIF_POSITION
 
-        ; TIMER1 INTERRUPT
+        ; TIMER1
         btfsc   PIR1, PIR1_TMR1IF_POSITION
         call    Timer1_ISR_Handler
 
         movf    PCLATH_TEMP, W
         movwf   PCLATH
-        swapf   STATUS_TEMP, W
+        movf    STATUS_TEMP, W
         movwf   STATUS
-        swapf   W_TEMP, F
-        swapf   W_TEMP, W
+        movf    W_TEMP, W
         retfie
+
 
 
 ; --------------------------------------------------
@@ -93,33 +93,18 @@ MAIN:
         call init_ram_vars
 
 MAIN_LOOP:
+	call UART_Process
+        call Read_Ambient_Temp_ADC
+        call Read_Fan_Speed
 
-; ==================================================
-; TEST BLOCK (COMMENTED ? FOR REPORT)
-; ==================================================
-; Ambient = 15.0 �C
-; Desired = 25.0 �C
-; Expected: FAN ON, HEATER OFF
-;
-       movlw   15
-       movwf   AmbientTemp_INT
-       clrf    AmbientTemp_FRAC
+        call Temperature_Control_Logic
+        call Display_Multiplex_Routine
 
-       movlw   25
-       movwf   DesiredTemp_INT
-       clrf    DesiredTemp_FRAC
-
-       call Temperature_Control_Logic
-       call delay_big
-; ==================================================
-
-        ;call Read_Ambient_Temp_ADC
-        ;call Read_Fan_Speed
-        ;call Temperature_Control_Logic
-        ;call Display_Multiplex_Routine
-        ;call UART_Process
 
         goto MAIN_LOOP
+
+
+
 
 
 ; --------------------------------------------------
