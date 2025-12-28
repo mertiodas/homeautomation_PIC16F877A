@@ -2,7 +2,7 @@
 
 ---
 
-## BOARD #1: AIR CONDITIONER SYSTEM (COM5)
+## BOARD #1: AIR CONDITIONER SYSTEM (COM11)
 **PIC Microcontroller:** PIC16F877A  
 **Goal:** Temperature Control and User Input (Keypad)
 
