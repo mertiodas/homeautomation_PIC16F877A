@@ -1,236 +1,112 @@
 ; ======================================================
-; MODULE: uart_board1.asm
-; UART RX/TX
+; MODULE: uart_board1.asm - 
+; Author: Mert Cengiz aka mertiodas
 ; ======================================================
 
-; --- Variables should be in main file or properly declared ---
-; If not already declared in main, add:
-;       PSECT udata_bank0
-; UART_RX_Byte: DS 1
-; UART_Flag:    DS 1
-
-; --------------------------------------------------
-; INIT UART (9600 baud @ 4MHz)
-; --------------------------------------------------
 INIT_UART:
-        ; --- Set UART pins ---
-        BANKSEL TRISC
-        BSF     TRISC, 7          ; RC7 = RX (input)
-        BCF     TRISC, 6          ; RC6 = TX (output)
-
-        ; --- Baud rate: 9600 @ 4MHz ---
-        BANKSEL SPBRG
-        MOVLW   25
-        MOVWF   SPBRG
-
-        ; --- Transmit control ---
-        BANKSEL TXSTA
-        MOVLW   0x24              ; BRGH=1, TXEN=1
-        MOVWF   TXSTA
-
-        ; --- Receive control ---
-        BANKSEL RCSTA
-        MOVLW   0x90              ; SPEN=1, CREN=1
-        MOVWF   RCSTA
-
-                ; --- UART recovery / flush ---
-        BANKSEL RCSTA
-        BCF     RCSTA, 4          ; CREN = 0
-        BSF     RCSTA, 4          ; CREN = 1
-
-        BANKSEL RCREG
-        MOVF    RCREG, W          ; flush garbage
-
-        ; --- CLEAR RX INTERRUPT FLAG (IMPORTANT) ---
-        BANKSEL PIR1
-        BCF     PIR1, PIR1_RCIF_POSITION
-
-        ; --- ENABLE UART RX INTERRUPT ---
-        BANKSEL PIE1
-        BSF     PIE1, PIE1_RCIE_POSITION
-
-        ; --- ENABLE GLOBAL INTERRUPTS ---
-        BANKSEL INTCON
-        BSF     INTCON, INTCON_PEIE_POSITION
-        BSF     INTCON, INTCON_GIE_POSITION
-
-        RETURN
-
-
-
-; --------------------------------------------------
-; UART RX ISR
-; --------------------------------------------------
-UART_RX_ISR:
+    BANKSEL SPBRG
+    movlw   25              ; 9600 Baud @ 4MHz
+    movwf   SPBRG
+    BANKSEL TXSTA
+    movlw   0x24            ; TXEN=1, BRGH=1
+    movwf   TXSTA
     BANKSEL RCSTA
-    BTFSC RCSTA, 1        ; OERR?
-    CALL UART_CLEAR_OERR
+    movlw   0x90            ; SPEN=1, CREN=1
+    movwf   RCSTA
+    BANKSEL PORTA           ; Back to Bank 0
+    return
+
+UART_Process:
+    BANKSEL PIR1
+    btfss   PIR1, 5         ; Check RCIF (Did a byte arrive?)
+    return                  
 
     BANKSEL RCREG
-    MOVF RCREG, W         ; READ RX BYTE (clears RCIF)
+    movf    RCREG, W        ; Read byte from Python
+    movwf   UART_Buf
 
-    BANKSEL UART_RX_Byte
-    MOVWF UART_RX_Byte    ; STORE BYTE
+    ; --- GETTERS (Python requests data) ---
+    xorlw   0x01            ; Command 0x01 -> Get Desired INT
+    btfsc   STATUS, 2
+    goto    TX_Desired_Int
 
-    MOVLW 1
-    MOVWF UART_Flag       ; SET FLAG
+    movf    UART_Buf, W
+    xorlw   0x02            ; Command 0x02 -> Get Desired FRAC
+    btfsc   STATUS, 2
+    goto    TX_Desired_Frac
 
-    BANKSEL PORTE
-    BSF PORTE, 0          ; LED ON = RX CONFIRMED
+    movf    UART_Buf, W
+    xorlw   0x03            ; Command 0x03 -> Get Ambient INT
+    btfsc   STATUS, 2
+    goto    TX_Ambient_Int
 
-    ; --- IMMEDIATE RESPONSE ---
-    CALL UART_Process     ; sends correct byte back to Python
+    movf    UART_Buf, W
+    xorlw   0x04            ; Command 0x04 -> Get Ambient FRAC
+    btfsc   STATUS, 2
+    goto    TX_Ambient_Frac
 
-    RETURN
+    ; --- SETTERS (Python sends data) ---
+    movf    UART_Buf, W
+    xorlw   0x80            ; Command 0x80 -> Set Desired INT
+    btfsc   STATUS, 2
+    goto    RX_Set_Desired_Int
 
+    movf    UART_Buf, W
+    xorlw   0x81            ; Command 0x81 -> Set Desired FRAC
+    btfsc   STATUS, 2
+    goto    RX_Set_Desired_Frac
+    
+    return
 
+; --- TRANSMIT SUBROUTINES ---
+TX_Desired_Int:
+    movf    DesiredTemp_INT, W
+    goto    UART_TX_Send
 
-UART_CLEAR_OERR:
-        BANKSEL RCSTA
-        BCF     RCSTA, 4        ; CREN = 0
-        BSF     RCSTA, 4        ; CREN = 1
-        BANKSEL RCREG
-        MOVF    RCREG, W        ; flush
-        RETURN
+TX_Desired_Frac:
+    movf    DesiredTemp_FRAC, W
+    goto    UART_TX_Send
 
+TX_Ambient_Int:
+    movf    AmbientTemp_INT, W
+    goto    UART_TX_Send
 
+TX_Ambient_Frac:
+    movf    AmbientTemp_FRAC, W
+    goto    UART_TX_Send
 
+UART_TX_Send:
+    BANKSEL TXSTA
+_tx_wait:
+    btfss   TXSTA, 1        ; Wait for TRMT (Shift Register Empty)
+    goto    _tx_wait
+    BANKSEL TXREG
+    movwf   TXREG           ; Transmit
+    return
 
-; --------------------------------------------------
-; UART PROCESS
-; --------------------------------------------------
-UART_Process:
-    BANKSEL UART_Flag
-    MOVF UART_Flag,W
-    BTFSC STATUS,2
-    RETURN
-    CLRF UART_Flag
+; --- RECEIVE SUBROUTINES ---
+RX_Set_Desired_Int:
+    call    Wait_For_Byte
+    movwf   DesiredTemp_INT
+    return
 
-    BANKSEL UART_RX_Byte
-    MOVF UART_RX_Byte,W
+RX_Set_Desired_Frac:
+    call    Wait_For_Byte
+    movwf   DesiredTemp_FRAC
+    return
 
-    ; Command handling
-    XORLW 0x01
-    BTFSC STATUS,2
-    GOTO SEND_DES_LOW
-
-    XORLW 0x02
-    BTFSC STATUS,2
-    GOTO SEND_DES_HIGH
-
-    XORLW 0x03
-    BTFSC STATUS,2
-    GOTO SEND_AMB_FRAC
-
-    XORLW 0x04
-    BTFSC STATUS,2
-    GOTO SEND_AMB_INT
-
-    XORLW 0x05
-    BTFSC STATUS,2
-    GOTO SEND_FAN_SPEED
-
-    ; --- Unknown command fallback: echo received byte ---
-    MOVF UART_RX_Byte,W
-    CALL UART_Send_Char
-    RETURN
-
-
-
-UART_HEATER:
-        BANKSEL PORTE
-        BSF     PORTE, 0    ; RE0 ON
-        BCF     PORTE, 1    ; RE1 OFF
-        RETURN
-
-UART_COOLER:
-        BANKSEL PORTE
-        BSF     PORTE, 1    ; RE1 ON
-        BCF     PORTE, 0    ; RE0 OFF
-        RETURN
-
-UART_OFF:
-        BANKSEL PORTE
-        BCF     PORTE, 0    ; RE0 OFF
-        BCF     PORTE, 1    ; RE1 OFF
-        RETURN
-
-SEND_DES_LOW:
-        BANKSEL DesiredTemp_FRAC    ; Changed from _Low to match logic
-        MOVF    DesiredTemp_FRAC, W
-        CALL    UART_Send_Char
-        RETURN
-
-SEND_DES_HIGH:
-        BANKSEL DesiredTemp_INT     ; Changed from _High to match SET logic
-        MOVF    DesiredTemp_INT, W
-        CALL    UART_Send_Char
-        RETURN
-
-SEND_AMB_INT:
-        BANKSEL AmbientTemp_INT
-        MOVF    AmbientTemp_INT, W
-        CALL    UART_Send_Char
-        RETURN
-
-SEND_AMB_FRAC:
-        BANKSEL AmbientTemp_FRAC
-        MOVF    AmbientTemp_FRAC, W
-        CALL    UART_Send_Char
-        RETURN
-
-SEND_FAN_SPEED:
-        BANKSEL FanSpeed_RPS
-        MOVF    FanSpeed_RPS, W
-        CALL    UART_Send_Char
-        RETURN
-
-; --- SET FUNCTIONS (Receiving from Python) ---
-
-RECEIVE_DESIRED_TEMP:
-        ; Note: UART_RX_Byte should be in W before calling this or
-        ; you can MOVF UART_RX_Byte, W here to be safe.
-        BTFSC   UART_RX_Byte, 6
-        GOTO    SET_INT_VAL     ; If bits are 11xxxxxx
-        GOTO    SET_FRAC_VAL    ; If bits are 10xxxxxx
-
-SET_INT_VAL:
-        MOVF    UART_RX_Byte, W
-        ANDLW   0x3F            ; Mask bits 7 & 6, keep the 6-bit value
-        BANKSEL DesiredTemp_INT
-        MOVWF   DesiredTemp_INT
-        RETURN
-
-SET_FRAC_VAL:
-        MOVF    UART_RX_Byte, W
-        ANDLW   0x3F            ; Mask bits 7 & 6, keep the 6-bit value
-        BANKSEL DesiredTemp_FRAC
-        MOVWF   DesiredTemp_FRAC
-        RETURN
-
-; --- YARDIMCI TX FONKSÄ°YONLARI ---
-
-UART_Send_Char:
-        BANKSEL TXSTA       ; Go to Bank 1
-WAIT_TX:
-        BTFSS   TXSTA, 1    ; Check TRMT bit (TSR empty?)
-        GOTO    WAIT_TX
-        BANKSEL TXREG       ; Go to Bank 0
-        MOVWF   TXREG       ; Load the byte from W into TXREG
-        RETURN
-DIV_LOOP:
-        MOVLW   10
-        SUBWF   0x70, W     ; W = DeÄ?er - 10
-        BTFSS   STATUS, 0   ; BorÃ§ (Carry) var mÄ±? (DeÄ?er < 10 mu?)
-        GOTO    PRINT_DIGITS
-        MOVWF   0x70        ; DeÄ?er = DeÄ?er - 10
-        INCF    0x71, F     ; Onlar hanesini artÄ±r
-        GOTO    DIV_LOOP
-PRINT_DIGITS:
-        MOVF    0x71, W
-        ADDLW   0x30        ; ASCII yap
-        CALL    UART_Send_Char
-        MOVF    0x70, W
-        ADDLW   0x30        ; ASCII yap
-        CALL    UART_Send_Char
-        RETURN
+Wait_For_Byte:
+    ; Check for Overrun/Framing Errors
+    BANKSEL RCSTA
+    btfss   RCSTA, 1        ; OERR bit
+    goto    _no_err
+    bcf     RCSTA, 4        ; Clear CREN to reset error
+    bsf     RCSTA, 4        ; Re-enable CREN
+_no_err:
+    BANKSEL PIR1
+_w_byte:
+    btfss   PIR1, 5         ; Wait for next byte in sequence
+    goto    _w_byte
+    BANKSEL RCREG
+    movf    RCREG, W        ; Return the value in W
+    return
