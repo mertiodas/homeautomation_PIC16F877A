@@ -37,7 +37,7 @@
 | Potentiometer        | POT1                 | Analog In        | RA2              | AN2 (Desired Curtain Status Set)  |
 | LCD hd44780          | RS / EN              | Digital Out      | RE0 / RE1        | LCD Control Pins                  |
 |                      | D4 - D7              | Digital Out      | RB0-RB3          | LCD Data Bus (4-bit mode)         |
-| UART Config          | Port                 | N/A              | COM6             | Serial Connection to PC           |
+| UART Config          | Port                 | N/A              | COM12             | Serial Connection to PC           |
 
 ---
 
