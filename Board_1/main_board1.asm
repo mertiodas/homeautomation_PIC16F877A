@@ -14,20 +14,28 @@ CONFIG FOSC=XT, WDTE=OFF, PWRTE=ON, BOREN=OFF, LVP=OFF, CPD=OFF, WRT=OFF, CP=OFF
 ; RAM VARIABLES
 ; =========================
         PSECT udata_bank0
-AmbientTemp_INT:   DS 1        ; Ambient temperature value
-DesiredTemp_INT:   DS 1        ; Desired (set) temperature
-FanSpeed_RPS:      DS 1        ; Fan speed value
 
-NUM_1: DS 1                   ; Display digit 1 (tens)
-NUM_2: DS 1                   ; Display digit 2 (ones + decimal point)
-NUM_3: DS 1                   ; Display digit 3 (always '0')
+; --- Temperature & Fan ---
+AmbientTemp_INT:   DS 1        ; Ambient temperature integer (10?50)
+AmbientTemp_FRAC:  DS 1        ; Ambient temperature fraction (0?9)
 
-D1_VAR: DS 1                  ; Delay helper variable
-D2_VAR: DS 1                  ; Display refresh counter
-D3_VAR: DS 1                  ; Temporary calculation variable
+DesiredTemp_INT:   DS 1        ; Desired temperature integer (10?50)
+DesiredTemp_FRAC:  DS 1        ; Desired temperature fraction (0?9)
+
+FanSpeed_RPS:      DS 1        ; Fan speed (integer)
+
+; --- Display ---
+NUM_1: DS 1                   ; Tens digit
+NUM_2: DS 1                   ; Ones digit + decimal point
+NUM_3: DS 1                   ; Fraction digit
+
+; --- Helpers ---
+D1_VAR: DS 1
+D2_VAR: DS 1
+D3_VAR: DS 1
 
 MODE_COUNT: DS 1              ; 0: Ambient, 1: Desired, 2: Fan
-LOOP_TIMER: DS 1              ; Counter used for mode switching timing
+LOOP_TIMER: DS 1              ; Mode switching timer
 
 
 ; =========================
@@ -42,32 +50,50 @@ LOOP_TIMER: DS 1              ; Counter used for mode switching timing
 ; CODE SECTION
 ; =========================
         PSECT code
- 
-	;include "display.asm"
+
+        ;include "display.asm"
         ;include "keypad.asm"
         ;include "temp_adc.asm"
         ;include "uart_board1.asm"
-	
+
+
 ; =========================
 ; MAIN
 ; =========================
 MAIN:
         call init_ports_and_config
 
-        ; === CHANGE VALUES FROM HERE ===
+        ; === INITIAL VALUES ===
         movlw 35
         movwf AmbientTemp_INT
+        movlw 7
+        movwf AmbientTemp_FRAC        ; 35.7 °C
 
         movlw 25
         movwf DesiredTemp_INT
+        movlw 3
+        movwf DesiredTemp_FRAC        ; 25.3 °C
 
         movlw 45
         movwf FanSpeed_RPS
 
-        clrf  MODE_COUNT
-        clrf  LOOP_TIMER
+        clrf MODE_COUNT
+        clrf LOOP_TIMER
 
+
+; =========================
+; MAIN LOOP
+; =========================
 MAIN_LOOP:
+        ; --- CLAMP TEMPERATURE EVERY LOOP ---
+        movf AmbientTemp_INT, W
+        call Clamp_Temperature_10_50
+        movwf AmbientTemp_INT
+
+        movf DesiredTemp_INT, W
+        call Clamp_Temperature_10_50
+        movwf DesiredTemp_INT
+
         call Temperature_Control_Logic
 
         ; --- MODE SWITCHING LOGIC ---
@@ -105,21 +131,23 @@ SHOW_CURRENT:
 
 
 ; ======================================================
-; DISPLAY DATA PREPARATION (DYNAMIC)
-; Format: two digits + decimal point + 0  =>  XX.0
-; NUM_1 = tens digit (7-seg)
-; NUM_2 = ones digit + decimal point (7-seg | 0x80)
-; NUM_3 = '0' (7-seg)
+; DISPLAY DATA PREPARATION
 ; ======================================================
 
 SET_AMBIENT_DATA:
         movf AmbientTemp_INT, W
-        call VALUE_TO_XX_DOT_0
+        call VALUE_TO_XX_DOT_X
+        movf AmbientTemp_FRAC, W
+        call DIGIT_TO_7SEG
+        movwf NUM_3
         return
 
 SET_DESIRED_DATA:
         movf DesiredTemp_INT, W
-        call VALUE_TO_XX_DOT_0
+        call VALUE_TO_XX_DOT_X
+        movf DesiredTemp_FRAC, W
+        call DIGIT_TO_7SEG
+        movwf NUM_3
         return
 
 SET_FAN_DATA:
@@ -129,48 +157,48 @@ SET_FAN_DATA:
 
 
 ; ======================================================
-; Input: W = 0..99 (values above 99 behave as last two digits)
-; Output: NUM_1, NUM_2, NUM_3 contain 7-segment codes
+; VALUE_TO_XX_DOT_X  (XX.X)
 ; ======================================================
-VALUE_TO_XX_DOT_0:
-        movwf D3_VAR            ; Copy input value
+VALUE_TO_XX_DOT_X:
+        movwf D3_VAR
 
-        ; Tens digit = value / 10
-        clrf NUM_1              ; Tens digit (as number)
-V10_LOOP:
+        clrf NUM_1
+V10_LOOP_X:
         movlw 10
         subwf D3_VAR, F
         btfss STATUS, 0
-        goto V10_END
+        goto V10_END_X
         incf NUM_1, F
-        goto V10_LOOP
+        goto V10_LOOP_X
 
-V10_END:
-        addwf D3_VAR, F         ; Restore remainder, D3_VAR = ones digit
-
-        ; Ones digit
+V10_END_X:
+        addwf D3_VAR, F
         movf D3_VAR, W
-        movwf NUM_2             ; Ones digit (as number)
+        movwf NUM_2
 
-        ; Convert digits to 7-segment codes
         movf NUM_1, W
         call DIGIT_TO_7SEG
         movwf NUM_1
 
         movf NUM_2, W
         call DIGIT_TO_7SEG
-        iorlw 0x80              ; Add decimal point (same as original code)
+        iorlw 0x80
         movwf NUM_2
+        return
 
-        movlw 0x3F              ; '0'
+
+; ======================================================
+; VALUE_TO_XX_DOT_0 (Fan)
+; ======================================================
+VALUE_TO_XX_DOT_0:
+        call VALUE_TO_XX_DOT_X
+        movlw 0x3F
         movwf NUM_3
         return
 
 
 ; ======================================================
-; DIGIT_TO_7SEG
-; Input: W = 0..9
-; Output: W = 7-segment code
+; DIGIT TO 7-SEG
 ; ======================================================
 DIGIT_TO_7SEG:
         movwf D1_VAR
@@ -181,16 +209,16 @@ DIGIT_TO_7SEG:
 
 SEG_TABLE:
         addwf PCL, F
-        retlw 0x3F ; 0
-        retlw 0x06 ; 1
-        retlw 0x5B ; 2
-        retlw 0x4F ; 3
-        retlw 0x66 ; 4
-        retlw 0x6D ; 5
-        retlw 0x7D ; 6
-        retlw 0x07 ; 7
-        retlw 0x7F ; 8
-        retlw 0x6F ; 9
+        retlw 0x3F
+        retlw 0x06
+        retlw 0x5B
+        retlw 0x4F
+        retlw 0x66
+        retlw 0x6D
+        retlw 0x7D
+        retlw 0x07
+        retlw 0x7F
+        retlw 0x6F
 
 
 ; =========================
@@ -214,14 +242,14 @@ init_ports_and_config:
 
 
 ; =========================
-; DISPLAY DRIVER (MULTIPLEXING)
+; DISPLAY DRIVER
 ; =========================
 REFRESH_DISPLAY_FAST:
         movlw 10
         movwf D2_VAR
 L_REF:
         BANKSEL PORTA
-        movlw 0x08          ; RA3 - Digit 1
+        movlw 0x08
         movwf PORTA
         BANKSEL PORTD
         movf NUM_1, W
@@ -229,7 +257,7 @@ L_REF:
         call SHORT_DELAY
 
         BANKSEL PORTA
-        movlw 0x10          ; RA4 - Digit 2
+        movlw 0x10
         movwf PORTA
         BANKSEL PORTD
         movf NUM_2, W
@@ -237,7 +265,7 @@ L_REF:
         call SHORT_DELAY
 
         BANKSEL PORTA
-        movlw 0x20          ; RA5 - Digit 3
+        movlw 0x20
         movwf PORTA
         BANKSEL PORTD
         movf NUM_3, W
@@ -286,5 +314,36 @@ BOTH_OFF:
         bcf PORTE, 0
         bcf PORTE, 1
         return
+
+
+; ======================================================
+; Clamp_Temperature_10_50
+; Input : W
+; Output: W clamped to 10..50
+; ======================================================
+Clamp_Temperature_10_50:
+        movwf D3_VAR
+
+        ; if < 10 -> 10
+        movlw 10
+        subwf D3_VAR, W
+        btfsc STATUS, 0
+        goto CHECK_MAX
+        movlw 10
+        return
+
+CHECK_MAX:
+        ; if > 50 -> 50
+        movlw 50
+        subwf D3_VAR, W
+        btfss STATUS, 0
+        goto OK_RANGE
+        movlw 50
+        return
+
+OK_RANGE:
+        movf D3_VAR, W
+        return
+
 
         END
