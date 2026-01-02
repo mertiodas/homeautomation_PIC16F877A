@@ -32,7 +32,7 @@ class AirConditionerSystemConnection(HomeAutomationSystemConnection):
 
                 if high_byte and low_byte:
                     # THIS LINE PROVES THE PIC IS TALKING
-                    print(f"PIC RESPONSE RECEIVED: Integral={ord(high_byte)}, Frac={ord(low_byte)}")
+                    print(f"PIC RESPONSE RECEIVED: Integer={ord(high_byte)}, Frac={ord(low_byte)}")
 
                     integral = ord(high_byte)
                     fractional = ord(low_byte)
