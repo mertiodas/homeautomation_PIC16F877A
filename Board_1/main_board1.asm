@@ -18,7 +18,7 @@ CONFIG FOSC=XT, WDTE=OFF, PWRTE=ON, BOREN=OFF, LVP=OFF, CPD=OFF, WRT=OFF, CP=OFF
 ; --- Temperature & Fan ---
 AmbientTemp_INT:   DS 1        ; Ambient temperature integer (10?50)
 AmbientTemp_FRAC:  DS 1        ; Ambient temperature fraction (0?9)
-
+UART_Buf: DS 1
 DesiredTemp_INT:   DS 1        ; Desired temperature integer (10?50)
 DesiredTemp_FRAC:  DS 1        ; Desired temperature fraction (0?9)
 
@@ -54,7 +54,7 @@ LOOP_TIMER: DS 1              ; Mode switching timer
         ;include "display.asm"
         ;include "keypad.asm"
         ;include "temp_adc.asm"
-        ;include "uart_board1.asm"
+        
 
 
 ; =========================
@@ -62,6 +62,7 @@ LOOP_TIMER: DS 1              ; Mode switching timer
 ; =========================
 MAIN:
         call init_ports_and_config
+	call INIT_UART
 
         ; === INITIAL VALUES ===
         movlw 35
@@ -95,6 +96,7 @@ MAIN_LOOP:
         movwf DesiredTemp_INT
 
         call Temperature_Control_Logic
+	call UART_Process
 
         ; --- MODE SWITCHING LOGIC ---
         incf LOOP_TIMER, F
@@ -235,6 +237,9 @@ init_ports_and_config:
         clrf TRISD
         BANKSEL TRISE
         clrf TRISE
+	BANKSEL TRISC
+        movlw   0x81            ; Binary 10000001
+        movwf   TRISC           ; RC7=In, RC0=In, others=Out
 
         BANKSEL PORTA
         clrf PORTA
@@ -345,5 +350,5 @@ OK_RANGE:
         movf D3_VAR, W
         return
 
-
+#include "uart_board1.asm"
         END
